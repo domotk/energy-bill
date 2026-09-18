@@ -1,0 +1,15 @@
+{
+  "domain": "energy_bill",
+  "name": "Energy Bill",
+  "after_dependencies": [
+    "recorder"
+  ],
+  "codeowners": [
+    "@rubenbrieva"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/domotk/energy-bill",
+  "issue_tracker": "https://github.com/domotk/energy-bill/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
