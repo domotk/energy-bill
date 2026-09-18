@@ -214,6 +214,27 @@ r = compute(
 check("net imported (kWh)", r.imported_kwh, 2.0, tol=0.001)
 check("net exported (kWh)", r.exported_kwh, 2.0, tol=0.001)
 
+sin_extras = {"surplus_price": 0.0, "hourly_netting": False, "power": [], "daily": [], "taxes": []}
+
+print("\n════ one price series per tariff period ════")
+# A retailer with three periods can publish three entities, one per period. The
+# period then picks the series and the hour picks the price inside it, so a
+# period mapping has to resolve whatever it holds rather than assume a number.
+HourlySeries = engine.HourlySeries
+punta = HourlySeries({datetime(2026, 9, 16, 11): 0.30}, 0.0)
+valle = HourlySeries({datetime(2026, 9, 16, 3): 0.05}, 0.0)
+cfg_s = dict(sin_extras, energy_price={"P1": punta, "P2": 0.2, "P3": valle})
+r = compute(
+    [
+        Hour(datetime(2026, 9, 16, 11), 10.0, 0.0),   # P1, from its own series
+        Hour(datetime(2026, 9, 16, 9), 10.0, 0.0),    # P2, a plain number
+        Hour(datetime(2026, 9, 16, 3), 10.0, 0.0),    # P3, from another series
+    ],
+    cfg_s,
+    days=1,
+)
+check("each period reads its own series", r.concepts["energy"], 10 * 0.30 + 10 * 0.2 + 10 * 0.05)
+
 print("\n════ virtual battery · a balance, not a discount ════")
 # Solar Wallet, Solar Cloud: euros that surplus turned into once it had nothing
 # left to cancel out. Spent after tax, against the finished bill.
@@ -226,7 +247,6 @@ check("a balance larger than the bill pays all of it", r.credits["virtual_batter
 check("and leaves nothing to pay, not money owed", r.total, 0.0)
 
 print("\n════ electric vehicle ════")
-sin_extras = {"surplus_price": 0.0, "hourly_netting": False, "power": [], "daily": [], "taxes": []}
 
 cfg_v = dict(sin_extras, energy_price=[{"from": 1, "to": 7, "price": 0.068}, {"price": 0.17}])
 r = compute(

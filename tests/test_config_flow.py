@@ -176,6 +176,8 @@ RESPUESTAS = {
     "energy_price_p2": 0.1,
     "energy_price_p3": 0.08,
     "energy_price_entity": "sensor.precio_actual",
+    "energy_price_entity_p2": "sensor.precio_llano",
+    "energy_price_entity_p3": "sensor.precio_valle",
     "energy_price_taxed": True,
     "surplus_price": 0.05,
     "battery_entity": "sensor.solar_wallet",
@@ -184,13 +186,15 @@ RESPUESTAS = {
     "meter_rental": 0.02677,
     "monthly_fee": 0.0,
     "monthly_fee_name": "",
+    "discount_percent": 0.0,
+    "discount_name": "",
     "tax_electricity": 5.11269632,
     "tax_vat": 21.0,
     "hourly_netting": True,
 }
 
 
-async def recorrer(modo: str, flujo=None) -> tuple[list[str], dict, list[tuple[str, dict]]]:
+async def recorrer(plana: bool, fuente: str, flujo=None) -> tuple[list[str], dict, list[tuple[str, dict]]]:
     """Walk the whole wizard answering everything, and report what it asked."""
     flujo = flujo or cf.EnergyBillConfigFlow()
     visitados: list[str] = []
@@ -203,7 +207,7 @@ async def recorrer(modo: str, flujo=None) -> tuple[list[str], dict, list[tuple[s
         formularios.append((paso, campos(resultado)))
         valores = dict(RESPUESTAS)
         if paso == "pricing":
-            valores = {const.CONF_ENERGY_PRICE_MODE: modo}
+            valores = {const.CONF_ENERGY_FLAT: plana, const.CONF_ENERGY_SOURCE: fuente}
         entrada = respuesta(resultado, valores)
         resultado = await getattr(flujo, f"async_step_{paso}")(entrada)
         if len(visitados) > 10:
@@ -212,37 +216,50 @@ async def recorrer(modo: str, flujo=None) -> tuple[list[str], dict, list[tuple[s
 
 
 print("════ the wizard asks the right questions, in order ════")
-for modo, esperado in (
-    (const.MODE_FLAT, ["energy_price"]),
-    (const.MODE_PERIODS, ["energy_price", "energy_price_p2", "energy_price_p3"]),
-    (const.MODE_ENTITY, ["energy_price_entity", "energy_price_taxed"]),
-):
-    pasos, final, formularios = asyncio.run(recorrer(modo))
-    igual(f"[{modo}] steps", pasos, ["user", "pricing", "energy", "surplus", "extras"])
-    paso_energia = dict(formularios)["energy"][None]
-    igual(f"[{modo}] the energy step asks for exactly", paso_energia, esperado)
-    igual(f"[{modo}] ends by creating the entry", final["type"], "create")
+# Two questions, so four combinations — including the one a single question
+# would have hidden: three periods, each with its own entity publishing it.
+COMBINACIONES = (
+    (True, const.SOURCE_FIXED, ["energy_price"]),
+    (False, const.SOURCE_FIXED, ["energy_price", "energy_price_p2", "energy_price_p3"]),
+    (True, const.SOURCE_ENTITY, ["energy_price_entity", "energy_price_taxed"]),
+    (
+        False,
+        const.SOURCE_ENTITY,
+        ["energy_price_entity", "energy_price_entity_p2", "energy_price_entity_p3", "energy_price_taxed"],
+    ),
+)
+for plana, fuente, esperado in COMBINACIONES:
+    etiqueta = f"{'flat' if plana else 'periods'}+{fuente}"
+    pasos, final, formularios = asyncio.run(recorrer(plana, fuente))
+    igual(f"[{etiqueta}] steps", pasos, ["user", "pricing", "energy", "surplus", "extras"])
+    igual(f"[{etiqueta}] the energy step asks for exactly", dict(formularios)["energy"][None], esperado)
+    igual(f"[{etiqueta}] ends by creating the entry", final["type"], "create")
 
 print("\n════ a price that no longer applies is not kept ════")
 # Someone sets up per-period prices and later moves to a flat tariff. If P2 and
-# P3 survived that, the coordinator would go on billing periods the form no
+# P3 survived that, the bill would go on being split by periods the form no
 # longer shows.
-_, final_periodos, _ = asyncio.run(recorrer(const.MODE_PERIODS))
+_, final_periodos, _ = asyncio.run(recorrer(False, const.SOURCE_FIXED))
 cierto("per-period setup keeps P2 and P3", const.CONF_ENERGY_PRICE_P2 in final_periodos["data"])
 flujo = cf.EnergyBillConfigFlow()
 flujo._current = dict(final_periodos["data"])
-_, final_plano, _ = asyncio.run(recorrer(const.MODE_FLAT, flujo))
+_, final_plano, _ = asyncio.run(recorrer(True, const.SOURCE_FIXED, flujo))
 cierto("switching to flat drops P2", const.CONF_ENERGY_PRICE_P2 not in final_plano["data"])
 cierto("switching to flat drops P3", const.CONF_ENERGY_PRICE_P3 not in final_plano["data"])
 
-_, final_entidad, _ = asyncio.run(recorrer(const.MODE_ENTITY))
-cierto("the entity setup keeps the entity", const.CONF_ENERGY_PRICE_ENTITY in final_entidad["data"])
-cierto("and drops the fixed price", const.CONF_ENERGY_PRICE not in final_entidad["data"])
+_, final_entidad, _ = asyncio.run(recorrer(False, const.SOURCE_ENTITY))
+cierto("per-period entities are kept", const.CONF_ENERGY_PRICE_ENTITY_P3 in final_entidad["data"])
+cierto("and the typed prices dropped", const.CONF_ENERGY_PRICE not in final_entidad["data"])
+flujo = cf.EnergyBillConfigFlow()
+flujo._current = dict(final_entidad["data"])
+_, final_fijo, _ = asyncio.run(recorrer(False, const.SOURCE_FIXED, flujo))
+cierto("going back to typed prices drops the entities", const.CONF_ENERGY_PRICE_ENTITY not in final_fijo["data"])
+cierto("including the per-period ones", const.CONF_ENERGY_PRICE_ENTITY_P2 not in final_fijo["data"])
 
 print("\n════ a bill with no price is refused ════")
 flujo = cf.EnergyBillConfigFlow()
 asyncio.run(flujo.async_step_user(respuesta(asyncio.run(flujo.async_step_user()), RESPUESTAS)))
-asyncio.run(flujo.async_step_pricing({const.CONF_ENERGY_PRICE_MODE: const.MODE_FLAT}))
+asyncio.run(flujo.async_step_pricing({const.CONF_ENERGY_FLAT: True, const.CONF_ENERGY_SOURCE: const.SOURCE_FIXED}))
 vacio = asyncio.run(flujo.async_step_energy({}))
 igual("empty price stays on the step", vacio["step_id"], "energy")
 igual("and says why", vacio["errors"].get("base"), "no_energy_price")
@@ -250,8 +267,8 @@ igual("and says why", vacio["errors"].get("base"), "no_energy_price")
 print("\n════ every field a person sees has words next to it ════")
 # A field with no label renders as its raw key. It has happened, and the only
 # way to notice is to check every field of every step against the files.
-_, _, formularios = asyncio.run(recorrer(const.MODE_PERIODS))
-_, _, formularios_entidad = asyncio.run(recorrer(const.MODE_ENTITY))
+_, _, formularios = asyncio.run(recorrer(False, const.SOURCE_FIXED))
+_, _, formularios_entidad = asyncio.run(recorrer(False, const.SOURCE_ENTITY))
 todos = {paso: dict(campos) for paso, campos in formularios}
 for paso, campos_paso in formularios_entidad:
     for seccion, claves in campos_paso.items():
@@ -281,11 +298,12 @@ for idioma in ("en", "es"):
                         faltan.append(f"{ambito}.step.{paso}[{seccion}].data_description.{clave}")
     cierto(f"[{idioma}] every field is named and explained", not faltan, str(faltan[:4]))
 
-    modos = datos["selector"]["energy_price_mode"]["options"]
-    cierto(f"[{idioma}] the three tariff shapes are named", set(modos) == set(const.ENERGY_PRICE_MODES))
+    fuentes = datos["selector"]["energy_source"]["options"]
+    cierto(f"[{idioma}] both price sources are named", set(fuentes) == set(const.ENERGY_SOURCES))
     for error in ("no_energy_price", "no_price_entity"):
         cierto(f"[{idioma}] error «{error}» has a message", error in datos["config"]["error"])
-    cierto(f"[{idioma}] the virtual battery has a name", const.ID_BATTERY in datos["common"])
+    for concepto in (const.ID_BATTERY, const.ID_DISCOUNT):
+        cierto(f"[{idioma}] concept «{concepto}» has a name", concepto in datos["common"])
 
 print("\n" + ("  ALL GOOD" if not fallos else f"  {len(fallos)} FAILED: {fallos}"))
 sys.exit(1 if fallos else 0)

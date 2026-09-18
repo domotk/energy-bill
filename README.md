@@ -69,17 +69,30 @@ Five short steps, each asking about one thing.
 | Step | What it asks |
 |---|---|
 | 1. Meters and power | Your grid import meter, the export one if you have panels, the day your cycle starts, and the kW you contract in each power period |
-| 2. How your energy is priced | One question, three answers: the same price at every hour, three prices by time of use, or an entity publishes it |
-| 3. The prices themselves | Exactly the fields that answer implies, and nothing else |
-| 4. What comes back | Surplus price, the virtual battery holding your balance, and whether surplus is capped at the energy term |
-| 5. Fixed costs and taxes | Bono social, meter rental, monthly fees, and the tax rates — filled in with the Spanish ones |
+| 2. How your energy is priced | Two questions: is it the same price at every hour, and does the number come from you or from an entity |
+| 3. The prices themselves | Exactly the fields those answers imply, and nothing else |
+| 4. What comes back | Surplus price, the virtual battery holding your balance, and how surplus is netted |
+| 5. Charges, services and taxes | Regulated charges on one side, what your retailer sells you on the other, and the tax rates — filled in with the Spanish ones |
 
-Step 2 is what makes the rest short. A tariff either has one price, or a table
-of three, or none at all because it changes hourly — and knowing which means
-step 3 can ask for three fields instead of showing eight and hoping you know
-which ones are yours. **Time-of-use prices are asked for together**, because
-that is how they appear on the contract and a price you cannot see next to its
-neighbours is a price you cannot check.
+Step 2 is what makes the rest short, and it is two questions rather than one
+because they are genuinely independent — all four combinations exist:
+
+|  | You type the price | An entity publishes it |
+|---|---|---|
+| **Flat rate** | One price per kWh | One entity |
+| **Time-of-use** | Three prices, P1/P2/P3 | Three entities, one per period |
+
+Step 3 then asks for one, three, or four fields instead of showing eight and
+hoping you know which ones are yours. **Time-of-use prices are asked for
+together**, because that is how they appear on the contract and a price you
+cannot see next to its neighbours is a price you cannot check.
+
+Step 5 is split the same way, for the same reason. The **regulated charges** —
+bono social, meter rental — are set by decree and identical for every household
+in the country: look them up once and forget them. What your **retailer** sells
+you is the opposite, a name they invented and a price they chose, usually with
+a discount attached, and it is where two bills on the same tariff stop looking
+alike.
 
 > **Copy the prices from your contract, not from the printed bill.** Bills round
 > prices to three decimals, and computing with `0,095` instead of `0,09537` is
@@ -161,7 +174,7 @@ energy    = Σ  kWh(hour) × price(hour)        netted within each hour
 surplus   = −Σ kWh exported × surplus price   capped at the energy term
 power     = Σ  kW × €/kW/day × days           per power period
 fixed     = daily and monthly charges
-discounts = % of the undiscounted base, stacked
+discounts = % of the undiscounted base, stacked, inside both tax bases
 tax       = % of whichever concepts that tax declares
 balance   = the virtual battery, spent after tax, never past zero
 ```

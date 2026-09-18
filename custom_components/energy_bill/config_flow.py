@@ -6,10 +6,11 @@ one thing, every field carries a line of explanation, and the numeric ones are
 bounded to values that can actually exist.
 
 The energy price is the part that used to be spread out — a price here, the
-per-period prices folded away under "advanced" over there. Now one question
-decides the shape ("the same at every hour", "one price per period", "an entity
-publishes it") and the next step asks for exactly the fields that answer
-implies, and nothing else.
+per-period prices folded away under "advanced" over there. Now two questions
+decide the shape: does the price change with the hour of the day, and does the
+number come from you or from an entity. The next step then asks for exactly
+the fields those answers imply, and nothing else — one price, three prices,
+one entity, or three entities.
 """
 
 from __future__ import annotations
@@ -27,12 +28,17 @@ from .const import (
     CONF_BONO_SOCIAL,
     CONF_CONSUMPTION,
     CONF_CYCLE_DAY,
+    CONF_DISCOUNT_NAME,
+    CONF_DISCOUNT_PERCENT,
+    CONF_ENERGY_FLAT,
     CONF_ENERGY_PRICE,
     CONF_ENERGY_PRICE_ENTITY,
-    CONF_ENERGY_PRICE_MODE,
+    CONF_ENERGY_PRICE_ENTITY_P2,
+    CONF_ENERGY_PRICE_ENTITY_P3,
     CONF_ENERGY_PRICE_P2,
     CONF_ENERGY_PRICE_P3,
     CONF_ENERGY_PRICE_TAXED,
+    CONF_ENERGY_SOURCE,
     CONF_EXPORT,
     CONF_HOURLY_NETTING,
     CONF_METER_RENTAL,
@@ -55,11 +61,11 @@ from .const import (
     DEFAULT_TAX_ELECTRICITY,
     DEFAULT_TAX_VAT,
     DOMAIN,
-    ENERGY_PRICE_MODES,
-    MODE_ENTITY,
-    MODE_FLAT,
-    MODE_PERIODS,
+    ENERGY_SOURCES,
     SECTIONS,
+    SOURCE_ENTITY,
+    stored_flat,
+    stored_source,
 )
 
 _ENERGY_SENSOR = selector.EntitySelector(
@@ -129,26 +135,15 @@ def _percent():
     )
 
 
-def _price_mode():
-    """The one question the whole energy step hangs on, as radio buttons."""
+def _price_source():
+    """Where the number comes from, as radio buttons."""
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=list(ENERGY_PRICE_MODES),
+            options=list(ENERGY_SOURCES),
             mode=selector.SelectSelectorMode.LIST,
-            translation_key="energy_price_mode",
+            translation_key="energy_source",
         )
     )
-
-
-def infer_mode(current: dict[str, Any]) -> str:
-    """Work out the pricing shape of a setup made before the question existed."""
-    if current.get(CONF_ENERGY_PRICE_MODE) in ENERGY_PRICE_MODES:
-        return str(current[CONF_ENERGY_PRICE_MODE])
-    if current.get(CONF_ENERGY_PRICE_ENTITY):
-        return MODE_ENTITY
-    if current.get(CONF_ENERGY_PRICE_P2) is not None:
-        return MODE_PERIODS
-    return MODE_FLAT
 
 
 def flatten(user_input: dict[str, Any]) -> dict[str, Any]:
@@ -163,22 +158,33 @@ def flatten(user_input: dict[str, Any]) -> dict[str, Any]:
 
 
 def clean(data: dict[str, Any]) -> dict[str, Any]:
-    """Drop the price fields the chosen mode does not use.
+    """Drop the price fields the chosen shape does not use.
 
     Otherwise switching from per-period prices back to a flat one leaves P2 and
-    P3 lying around, and the coordinator — which decides by what is present —
-    would go on billing the periods nobody can see on the form any more.
+    P3 lying around, and a later reading of the config would go on billing the
+    periods nobody can see on the form any more.
     """
-    mode = infer_mode(data)
+    flat, source = stored_flat(data), stored_source(data)
     out = dict(data)
-    if mode != MODE_PERIODS:
-        out.pop(CONF_ENERGY_PRICE_P2, None)
-        out.pop(CONF_ENERGY_PRICE_P3, None)
-    if mode == MODE_ENTITY:
-        out.pop(CONF_ENERGY_PRICE, None)
+    sobran: list[str] = []
+    if flat:
+        sobran += [
+            CONF_ENERGY_PRICE_P2,
+            CONF_ENERGY_PRICE_P3,
+            CONF_ENERGY_PRICE_ENTITY_P2,
+            CONF_ENERGY_PRICE_ENTITY_P3,
+        ]
+    if source == SOURCE_ENTITY:
+        sobran += [CONF_ENERGY_PRICE, CONF_ENERGY_PRICE_P2, CONF_ENERGY_PRICE_P3]
     else:
-        out.pop(CONF_ENERGY_PRICE_ENTITY, None)
-        out.pop(CONF_ENERGY_PRICE_TAXED, None)
+        sobran += [
+            CONF_ENERGY_PRICE_ENTITY,
+            CONF_ENERGY_PRICE_ENTITY_P2,
+            CONF_ENERGY_PRICE_ENTITY_P3,
+            CONF_ENERGY_PRICE_TAXED,
+        ]
+    for clave in sobran:
+        out.pop(clave, None)
     return out
 
 
@@ -240,62 +246,89 @@ class _Wizard:
             ),
         )
 
-    # --- step 2: the one question that shapes the next step -----------------
+    # --- step 2: the two questions that shape the next step -----------------
     async def async_step_pricing(self, user_input: dict[str, Any] | None = None):
+        """Does the price change with the hour, and where does it come from.
+
+        Two questions and not one. They are genuinely independent, and all four
+        combinations exist — including the one a single question would have
+        hidden: three tariff periods, each with its own entity publishing it.
+        """
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_energy()
 
-        mode = infer_mode({**self._current, **self._data})
+        current = {**self._current, **self._data}
         return await self._show(
             "pricing",
             vol.Schema(
                 {
                     vol.Required(
-                        CONF_ENERGY_PRICE_MODE,
-                        description={"suggested_value": mode},
-                    ): _price_mode()
+                        CONF_ENERGY_FLAT,
+                        description={"suggested_value": stored_flat(current)},
+                    ): _BOOL,
+                    vol.Required(
+                        CONF_ENERGY_SOURCE,
+                        description={"suggested_value": stored_source(current)},
+                    ): _price_source(),
                 }
             ),
         )
 
-    # --- step 3: the prices that answer implies, and only those -------------
+    # --- step 3: the prices those answers imply, and only those -------------
     async def async_step_energy(self, user_input: dict[str, Any] | None = None):
-        mode = infer_mode({**self._current, **self._data})
+        current = {**self._current, **self._data}
+        flat, source = stored_flat(current), stored_source(current)
+        by_entity = source == SOURCE_ENTITY
         errors: dict[str, str] = {}
 
         if user_input is not None:
             candidate = {**self._data, **user_input}
-            if mode == MODE_ENTITY and not candidate.get(CONF_ENERGY_PRICE_ENTITY):
-                errors["base"] = "no_price_entity"
-            elif mode != MODE_ENTITY and not candidate.get(CONF_ENERGY_PRICE):
-                errors["base"] = "no_energy_price"
+            primero = CONF_ENERGY_PRICE_ENTITY if by_entity else CONF_ENERGY_PRICE
+            if not candidate.get(primero):
+                errors["base"] = "no_price_entity" if by_entity else "no_energy_price"
             if not errors:
                 self._data = candidate
                 return await self.async_step_surplus()
 
-        if mode == MODE_ENTITY:
+        # Whatever the shape, the periods are asked for together: they come off
+        # one table on the contract, and a price you cannot see next to its
+        # neighbours is a price you cannot check.
+        if by_entity:
             fields = {
                 vol.Required(
                     CONF_ENERGY_PRICE_ENTITY, **self._pre(CONF_ENERGY_PRICE_ENTITY)
-                ): _PRICE_SENSOR,
-                vol.Optional(
-                    CONF_ENERGY_PRICE_TAXED, **self._pre(CONF_ENERGY_PRICE_TAXED, False)
-                ): _BOOL,
+                ): _PRICE_SENSOR
             }
-        elif mode == MODE_PERIODS:
-            # All three periods together, which is the only way to fill them in:
-            # they come off one table on the contract, and a price you cannot
-            # see next to its neighbours is a price you cannot check.
-            fields = {
-                vol.Required(CONF_ENERGY_PRICE, **self._pre(CONF_ENERGY_PRICE)): _number(),
-                vol.Required(CONF_ENERGY_PRICE_P2, **self._pre(CONF_ENERGY_PRICE_P2)): _number(),
-                vol.Required(CONF_ENERGY_PRICE_P3, **self._pre(CONF_ENERGY_PRICE_P3)): _number(),
-            }
+            if not flat:
+                fields.update(
+                    {
+                        vol.Required(
+                            CONF_ENERGY_PRICE_ENTITY_P2, **self._pre(CONF_ENERGY_PRICE_ENTITY_P2)
+                        ): _PRICE_SENSOR,
+                        vol.Required(
+                            CONF_ENERGY_PRICE_ENTITY_P3, **self._pre(CONF_ENERGY_PRICE_ENTITY_P3)
+                        ): _PRICE_SENSOR,
+                    }
+                )
+            fields[
+                vol.Optional(CONF_ENERGY_PRICE_TAXED, **self._pre(CONF_ENERGY_PRICE_TAXED, False))
+            ] = _BOOL
         else:
             fields = {
-                vol.Required(CONF_ENERGY_PRICE, **self._pre(CONF_ENERGY_PRICE)): _number(),
+                vol.Required(CONF_ENERGY_PRICE, **self._pre(CONF_ENERGY_PRICE)): _number()
             }
+            if not flat:
+                fields.update(
+                    {
+                        vol.Required(
+                            CONF_ENERGY_PRICE_P2, **self._pre(CONF_ENERGY_PRICE_P2)
+                        ): _number(),
+                        vol.Required(
+                            CONF_ENERGY_PRICE_P3, **self._pre(CONF_ENERGY_PRICE_P3)
+                        ): _number(),
+                    }
+                )
 
         # One step id for the three shapes, not `energy_{mode}`: Home Assistant
         # routes the next submission to `async_step_<step_id>`, so a computed id
@@ -328,6 +361,12 @@ class _Wizard:
                     vol.Optional(
                         CONF_SURPLUS_CAPPED, **self._pre(CONF_SURPLUS_CAPPED, DEFAULT_SURPLUS_CAPPED)
                     ): _BOOL,
+                    # Hourly netting belongs here rather than in an "advanced"
+                    # drawer: it is a rule about surplus, and this is the step
+                    # about surplus.
+                    vol.Optional(
+                        CONF_HOURLY_NETTING, **self._pre(CONF_HOURLY_NETTING, DEFAULT_HOURLY_NETTING)
+                    ): _BOOL,
                 }
             ),
         )
@@ -338,12 +377,26 @@ class _Wizard:
             self._data.update(flatten(user_input))
             return await self._finish(clean({**self._current, **self._data}))
 
-        fixed = vol.Schema(
+        # Two sections, not one, because these are two different kinds of
+        # thing. The regulated charges are set by decree and identical for
+        # every household in the country: look them up once and never think
+        # about them again. What the retailer sells you is the opposite — a
+        # name they invented, a price they chose, and usually a discount
+        # attached to it — and it is where a bill stops matching the neighbour's.
+        regulated = vol.Schema(
             {
                 vol.Optional(CONF_BONO_SOCIAL, **self._pre(CONF_BONO_SOCIAL, 0.0)): _number(),
                 vol.Optional(CONF_METER_RENTAL, **self._pre(CONF_METER_RENTAL, 0.0)): _number(),
+            }
+        )
+        retailer = vol.Schema(
+            {
                 vol.Optional(CONF_MONTHLY_FEE, **self._pre(CONF_MONTHLY_FEE, 0.0)): _number(),
                 vol.Optional(CONF_MONTHLY_FEE_NAME, **self._pre(CONF_MONTHLY_FEE_NAME, "")): _TEXT,
+                vol.Optional(
+                    CONF_DISCOUNT_PERCENT, **self._pre(CONF_DISCOUNT_PERCENT, 0.0)
+                ): _percent(),
+                vol.Optional(CONF_DISCOUNT_NAME, **self._pre(CONF_DISCOUNT_NAME, "")): _TEXT,
             }
         )
         taxes = vol.Schema(
@@ -360,20 +413,13 @@ class _Wizard:
                 ): _BOOL,
             }
         )
-        advanced = vol.Schema(
-            {
-                vol.Optional(
-                    CONF_HOURLY_NETTING, **self._pre(CONF_HOURLY_NETTING, DEFAULT_HOURLY_NETTING)
-                ): _BOOL,
-            }
-        )
         return await self._show(
             "extras",
             vol.Schema(
                 {
-                    vol.Required("fixed"): section(fixed, {"collapsed": False}),
+                    vol.Required("regulated"): section(regulated, {"collapsed": False}),
+                    vol.Required("retailer"): section(retailer, {"collapsed": False}),
                     vol.Required("taxes"): section(taxes, {"collapsed": True}),
-                    vol.Required("advanced"): section(advanced, {"collapsed": True}),
                 }
             ),
         )

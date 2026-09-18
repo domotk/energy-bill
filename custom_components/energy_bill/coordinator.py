@@ -23,11 +23,15 @@ from .const import (
     CONF_BONO_SOCIAL,
     CONF_CONSUMPTION,
     CONF_CYCLE_DAY,
+    CONF_DISCOUNT_NAME,
+    CONF_DISCOUNT_PERCENT,
     CONF_ENERGY_PRICE,
     CONF_ENERGY_PRICE_ENTITY,
-    CONF_ENERGY_PRICE_TAXED,
+    CONF_ENERGY_PRICE_ENTITY_P2,
+    CONF_ENERGY_PRICE_ENTITY_P3,
     CONF_ENERGY_PRICE_P2,
     CONF_ENERGY_PRICE_P3,
+    CONF_ENERGY_PRICE_TAXED,
     CONF_EXPORT,
     CONF_HOURLY_NETTING,
     CONF_METER_RENTAL,
@@ -52,6 +56,7 @@ from .const import (
     DOMAIN,
     ID_BATTERY,
     ID_BONO,
+    ID_DISCOUNT,
     ID_ENERGY,
     ID_FEE,
     ID_IEE,
@@ -59,6 +64,9 @@ from .const import (
     ID_RENTAL,
     ID_SURPLUS,
     ID_VAT,
+    SOURCE_ENTITY,
+    stored_flat,
+    stored_source,
 )
 from .engine import Hour, HourlySeries, Result, compute, forecast
 
@@ -108,16 +116,28 @@ class BillCoordinator(DataUpdateCoordinator):
         o = self.options
         series = series or {}
         energy_price = float(o.get(CONF_ENERGY_PRICE, 0.0))
-        p2 = o.get(CONF_ENERGY_PRICE_P2)
-        p3 = o.get(CONF_ENERGY_PRICE_P3)
-        # Only build a per-period price when the user actually set one. A flat
-        # tariff is the common case and deserves the simpler shape.
-        if "energy" in series:
-            price: object = series["energy"]
-        elif p2 is not None and p3 is not None:
-            price = {"P1": energy_price, "P2": float(p2), "P3": float(p3)}
-        else:
+        # Two independent questions, so four shapes. A flat tariff gets the
+        # simplest thing that can express it — a single number, or a single
+        # series — and only a tariff with periods pays for the mapping.
+        flat, source = stored_flat(o), stored_source(o)
+        if source == SOURCE_ENTITY:
+            price: object = (
+                series.get("energy", energy_price)
+                if flat
+                else {
+                    "P1": series.get("energy", 0.0),
+                    "P2": series.get("energy_p2", 0.0),
+                    "P3": series.get("energy_p3", 0.0),
+                }
+            )
+        elif flat:
             price = energy_price
+        else:
+            price = {
+                "P1": energy_price,
+                "P2": float(o.get(CONF_ENERGY_PRICE_P2) or 0.0),
+                "P3": float(o.get(CONF_ENERGY_PRICE_P3) or 0.0),
+            }
 
         iee_over = [ID_POWER, ID_ENERGY, ID_SURPLUS]
         if o.get(CONF_TAX_INCLUDES_BONO):
@@ -154,7 +174,24 @@ class BillCoordinator(DataUpdateCoordinator):
             if balance > 0:
                 credits.append({"id": ID_BATTERY, "amount": balance, "cap_at_total": True})
 
+        # A retailer's discount is a percentage off the energy, and it lands in
+        # both tax bases: you are taxed on what you are charged, not on the
+        # list price. Both `over` lists therefore have to name it.
+        discounts = []
+        if o.get(CONF_DISCOUNT_PERCENT):
+            discounts.append(
+                {
+                    "id": ID_DISCOUNT,
+                    "name": o.get(CONF_DISCOUNT_NAME) or None,
+                    "percent": float(o[CONF_DISCOUNT_PERCENT]),
+                    "over": [ID_ENERGY],
+                }
+            )
+            iee_over.append(ID_DISCOUNT)
+
         vat_over = [ID_POWER, ID_ENERGY, ID_SURPLUS, ID_BONO, ID_RENTAL, ID_FEE, ID_IEE]
+        if discounts:
+            vat_over.append(ID_DISCOUNT)
         return {
             "credits": credits,
             "energy_price": price,
@@ -167,6 +204,7 @@ class BillCoordinator(DataUpdateCoordinator):
             ],
             "daily": daily,
             "monthly": monthly,
+            "discounts": discounts,
             "taxes": [
                 {
                     "id": ID_IEE,
@@ -251,10 +289,18 @@ class BillCoordinator(DataUpdateCoordinator):
         o = self.options
         wanted = {
             "energy": o.get(CONF_ENERGY_PRICE_ENTITY),
+            "energy_p2": o.get(CONF_ENERGY_PRICE_ENTITY_P2),
+            "energy_p3": o.get(CONF_ENERGY_PRICE_ENTITY_P3),
             "surplus": o.get(CONF_SURPLUS_PRICE_ENTITY),
         }
+        # One flag covers all three energy entities: they come from the same
+        # retailer publishing the same tariff, so one of them carrying taxes
+        # and another not would be a bug at their end, not a case to model.
+        energy_taxed = bool(o.get(CONF_ENERGY_PRICE_TAXED))
         taxed = {
-            "energy": bool(o.get(CONF_ENERGY_PRICE_TAXED)),
+            "energy": energy_taxed,
+            "energy_p2": energy_taxed,
+            "energy_p3": energy_taxed,
             "surplus": bool(o.get(CONF_SURPLUS_PRICE_TAXED)),
         }
         # A price that already carries taxes has to be stripped back before the

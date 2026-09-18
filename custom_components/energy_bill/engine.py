@@ -131,7 +131,11 @@ def _price_for(price, period: str, when: datetime | None = None) -> float:
                     return float(w["price"])
         return float(next((w["price"] for w in price if "from" not in w), 0.0))
     if isinstance(price, dict):
-        return float(price.get(period, 0.0))
+        # Resolved rather than read: what a period maps to may itself be an
+        # hourly series. A tariff with three periods can have three entities
+        # publishing them, one per period, and then the period picks the series
+        # and the hour picks the price inside it.
+        return _price_for(price.get(period, 0.0), period, when)
     return float(price)
 
 

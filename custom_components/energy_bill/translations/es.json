@@ -46,10 +46,12 @@
         "title": "Cómo te cobran la energía",
         "description": "De esta respuesta depende lo que te preguntemos después. Si dudas, míralo en el apartado de precios de tu contrato: o hay un único precio del kWh, o hay una tabla con tres, o no hay ninguno porque cambia cada hora.",
         "data": {
-          "energy_price_mode": "Tu tarifa es…"
+          "energy_flat": "Pago lo mismo a todas horas (tarifa plana)",
+          "energy_source": "Y el precio…"
         },
         "data_description": {
-          "energy_price_mode": "Casi todas las tarifas de precio fijo cobran lo mismo a todas horas. La tabla de tres precios es la discriminación horaria P1/P2/P3."
+          "energy_flat": "Desmárcalo si tu tarifa tiene discriminación horaria, es decir, un precio distinto en punta (P1), llano (P2) y valle (P3).",
+          "energy_source": "Si lo publica una entidad, en el paso siguiente eliges cuál. Con discriminación horaria se pide una entidad por tramo, que es como lo publican algunas comercializadoras."
         }
       },
       "energy": {
@@ -59,14 +61,18 @@
           "energy_price": "Precio de la energía (€/kWh)",
           "energy_price_p2": "Precio en llano, P2 (€/kWh)",
           "energy_price_p3": "Precio en valle, P3 (€/kWh)",
-          "energy_price_entity": "Entidad que publica el precio",
+          "energy_price_entity": "Entidad con el precio (punta, P1)",
+          "energy_price_entity_p2": "Entidad con el precio en llano (P2)",
+          "energy_price_entity_p3": "Entidad con el precio en valle (P3)",
           "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
         },
         "data_description": {
           "energy_price": "Lo que pagas por cada kWh comprado. Si tu tarifa distingue tramos, este es el de punta (P1): laborables de 10 a 14 y de 18 a 22.",
           "energy_price_p2": "Laborables de 8 a 10, de 14 a 18 y de 22 a 24.",
           "energy_price_p3": "Noches, fines de semana y festivos nacionales, el día entero.",
-          "energy_price_entity": "Se leen sus estadísticas horarias, no su valor de ahora: una factura se calcula con el precio que regía mientras pasaba la energía.",
+          "energy_price_entity": "Se leen sus estadísticas horarias, no su valor de ahora: una factura se calcula con el precio que regía mientras pasaba la energía. Si tu tarifa es plana, esta es la única entidad que hace falta.",
+          "energy_price_entity_p2": "Solo con discriminación horaria: la entidad que publica el precio del tramo llano.",
+          "energy_price_entity_p3": "Solo con discriminación horaria: la del tramo valle.",
           "energy_price_taxed": "Márcalo si la entidad ya incluye el impuesto eléctrico y el IVA; se descontarán antes de calcular, porque si no el kWh pagaría impuestos dos veces. La de Octopus, por ejemplo, los incluye."
         }
       },
@@ -78,34 +84,48 @@
           "surplus_price_entity": "…o una entidad que publique ese precio",
           "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos",
           "battery_entity": "Batería virtual (saldo en €)",
-          "surplus_capped": "Los excedentes no pueden superar al término de energía"
+          "surplus_capped": "Los excedentes no pueden superar al término de energía",
+          "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
         },
         "data_description": {
           "surplus_price": "Lo que te abonan por cada kWh vertido. Déjalo en 0 si no viertes.",
           "surplus_price_entity": "Solo si tu compensación también varía por horas.",
           "surplus_price_taxed": "Ojo: puede no coincidir con la de compra. En Octopus el precio de compra viene con impuestos y el del excedente sin ellos.",
           "battery_entity": "La hucha donde se acumula en euros el excedente que ya no tenía nada que descontar: Solar Wallet en Octopus, Solar Cloud en Iberdrola. Su saldo se aplica al final, después de impuestos, y puede dejar la factura en cero pero nunca en negativo.",
-          "surplus_capped": "Así es la norma: la compensación puede dejar la energía a cero, pero nunca a favor tuyo. Lo que sobra va a la batería virtual, si la tienes."
+          "surplus_capped": "Así es la norma: la compensación puede dejar la energía a cero, pero nunca a favor tuyo. Lo que sobra va a la batería virtual, si la tienes.",
+          "hourly_netting": "El balance neto horario que exige la normativa española: si en una hora viertes 3 kWh e importas 1, cuenta como si hubieras vertido 2. Déjalo marcado salvo que sepas que tu comercializadora hace otra cosa."
         }
       },
       "extras": {
-        "title": "Costes fijos e impuestos",
+        "title": "Cargos, servicios e impuestos",
         "description": "Lo que no depende de lo que consumas. Los impuestos vienen con los valores vigentes en España; solo hay que tocarlos si cambian.",
         "sections": {
-          "fixed": {
-            "name": "Costes fijos",
-            "description": "Si no sabes cuánto son, míralos en la última factura y déjalos en 0 mientras tanto.",
+          "regulated": {
+            "name": "Cargos regulados",
+            "description": "Los fija el Gobierno y son iguales para todo el mundo. Se miran una vez en la factura y ya no se vuelven a tocar.",
             "data": {
               "bono_social": "Bono social (€/día)",
-              "meter_rental": "Alquiler de equipos (€/día)",
-              "monthly_fee": "Cuota mensual (€/mes)",
-              "monthly_fee_name": "Nombre de esa cuota"
+              "meter_rental": "Alquiler de equipos (€/día)"
             },
             "data_description": {
-              "bono_social": "Lo fija el Gobierno y es igual para todos. Ronda los 0,025 € al día.",
-              "meter_rental": "El alquiler del contador, alrededor de 0,027 € al día.",
-              "monthly_fee": "Cualquier servicio añadido que te cobren cada mes: mantenimiento, packs de hogar, etcétera.",
-              "monthly_fee_name": "Cómo quieres que aparezca en el desglose. Por ejemplo, «Pack Hogar»."
+              "bono_social": "Ronda los 0,025 € al día.",
+              "meter_rental": "El alquiler del contador, alrededor de 0,027 € al día."
+            }
+          },
+          "retailer": {
+            "name": "Lo que te cobra tu comercializadora",
+            "description": "Aquí es donde dos facturas de la misma tarifa dejan de parecerse: servicios añadidos con el nombre que cada una les pone, y los descuentos que suelen acompañarlos.",
+            "data": {
+              "monthly_fee": "Cuota mensual (€/mes)",
+              "monthly_fee_name": "Nombre de esa cuota",
+              "discount_percent": "Descuento sobre la energía (%)",
+              "discount_name": "Nombre del descuento"
+            },
+            "data_description": {
+              "monthly_fee": "Mantenimiento, packs de hogar, servicios de urgencias… lo que te cobren cada mes al margen de la luz.",
+              "monthly_fee_name": "Cómo quieres que aparezca en el desglose. Por ejemplo, «Pack Hogar».",
+              "discount_percent": "El porcentaje que te descuentan del término de energía. Se calcula sobre la energía sin descontar y se refleja también en los impuestos, porque tributas por lo que te cobran.",
+              "discount_name": "Por ejemplo, «Plan Estable». Si lo dejas vacío aparecerá como «Descuento»."
             }
           },
           "taxes": {
@@ -120,16 +140,6 @@
               "tax_electricity": "El impuesto especial sobre la electricidad: 5,11 %.",
               "tax_vat": "El 21 % general.",
               "tax_includes_bono": "Aquí no todas las comercializadoras hacen lo mismo: Iberdrola lo incluye y Octopus no. Míralo en tu factura, en la base sobre la que calculan el impuesto eléctrico."
-            }
-          },
-          "advanced": {
-            "name": "Ajustes avanzados",
-            "description": "No suele hacer falta tocar nada de aquí.",
-            "data": {
-              "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
-            },
-            "data_description": {
-              "hourly_netting": "El balance neto horario que exige la normativa española: si en una hora viertes 3 kWh e importas 1, cuenta como si hubieras vertido 2."
             }
           }
         }
@@ -206,7 +216,8 @@
       "pricing": {
         "title": "Cómo te cobran la energía",
         "data": {
-          "energy_price_mode": "Tu tarifa es…"
+          "energy_flat": "Pago lo mismo a todas horas (tarifa plana)",
+          "energy_source": "Y el precio…"
         }
       },
       "energy": {
@@ -215,7 +226,9 @@
           "energy_price": "Precio de la energía (€/kWh)",
           "energy_price_p2": "Precio en llano, P2 (€/kWh)",
           "energy_price_p3": "Precio en valle, P3 (€/kWh)",
-          "energy_price_entity": "Entidad que publica el precio",
+          "energy_price_entity": "Entidad con el precio (punta, P1)",
+          "energy_price_entity_p2": "Entidad con el precio en llano (P2)",
+          "energy_price_entity_p3": "Entidad con el precio en valle (P3)",
           "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
         }
       },
@@ -226,19 +239,27 @@
           "surplus_price_entity": "…o una entidad que publique ese precio",
           "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos",
           "battery_entity": "Batería virtual (saldo en €)",
-          "surplus_capped": "Los excedentes no pueden superar al término de energía"
+          "surplus_capped": "Los excedentes no pueden superar al término de energía",
+          "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
         }
       },
       "extras": {
-        "title": "Costes fijos e impuestos",
+        "title": "Cargos, servicios e impuestos",
         "sections": {
-          "fixed": {
-            "name": "Costes fijos",
+          "regulated": {
+            "name": "Cargos regulados",
             "data": {
               "bono_social": "Bono social (€/día)",
-              "meter_rental": "Alquiler de equipos (€/día)",
+              "meter_rental": "Alquiler de equipos (€/día)"
+            }
+          },
+          "retailer": {
+            "name": "Lo que te cobra tu comercializadora",
+            "data": {
               "monthly_fee": "Cuota mensual (€/mes)",
-              "monthly_fee_name": "Nombre de esa cuota"
+              "monthly_fee_name": "Nombre de esa cuota",
+              "discount_percent": "Descuento sobre la energía (%)",
+              "discount_name": "Nombre del descuento"
             }
           },
           "taxes": {
@@ -247,12 +268,6 @@
               "tax_electricity": "Impuesto eléctrico",
               "tax_vat": "IVA",
               "tax_includes_bono": "El bono social entra en la base del impuesto eléctrico"
-            }
-          },
-          "advanced": {
-            "name": "Ajustes avanzados",
-            "data": {
-              "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
             }
           }
         }
@@ -282,11 +297,10 @@
     }
   },
   "selector": {
-    "energy_price_mode": {
+    "energy_source": {
       "options": {
-        "flat": "De precio fijo, el mismo a todas horas",
-        "periods": "De precio fijo, con tres precios por tramo horario (P1/P2/P3)",
-        "entity": "Indexada: el precio cambia cada hora y lo publica una entidad"
+        "fixed": "Lo escribo yo, de mi contrato",
+        "entity": "Lo publica una entidad (tarifa indexada, PVPC…)"
       }
     }
   },
@@ -315,6 +329,7 @@
     "monthly_fee": "Cuota mensual",
     "iee": "Impuesto eléctrico",
     "vat": "IVA",
-    "virtual_battery": "Batería virtual"
+    "virtual_battery": "Batería virtual",
+    "discount": "Descuento"
   }
 }

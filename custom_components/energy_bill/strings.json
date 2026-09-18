@@ -46,10 +46,12 @@
         "title": "How your energy is priced",
         "description": "What we ask next depends on this answer. If you are not sure, look at the prices section of your contract: either there is a single price per kWh, or a table of three, or none at all because it changes every hour.",
         "data": {
-          "energy_price_mode": "Your tariff is…"
+          "energy_flat": "I pay the same at every hour (flat rate)",
+          "energy_source": "And the price…"
         },
         "data_description": {
-          "energy_price_mode": "Most fixed-price tariffs charge the same at every hour. The table of three is the P1/P2/P3 time-of-use split."
+          "energy_flat": "Untick this if your tariff has time-of-use pricing, that is, a different price at peak (P1), mid-peak (P2) and off-peak (P3).",
+          "energy_source": "If an entity publishes it, you pick which one in the next step. With time-of-use pricing you are asked for one entity per period, which is how some retailers publish them."
         }
       },
       "energy": {
@@ -59,14 +61,18 @@
           "energy_price": "Energy price (€/kWh)",
           "energy_price_p2": "Mid-peak price, P2 (€/kWh)",
           "energy_price_p3": "Off-peak price, P3 (€/kWh)",
-          "energy_price_entity": "Entity publishing the price",
+          "energy_price_entity": "Entity with the price (peak, P1)",
+          "energy_price_entity_p2": "Entity with the mid-peak price (P2)",
+          "energy_price_entity_p3": "Entity with the off-peak price (P3)",
           "energy_price_taxed": "That entity gives the price with taxes included"
         },
         "data_description": {
           "energy_price": "What you pay for each kWh bought. If your tariff has periods, this is peak (P1): weekdays 10-14 and 18-22.",
           "energy_price_p2": "Weekdays 8-10, 14-18 and 22-24.",
           "energy_price_p3": "Nights, weekends and national holidays, all day.",
-          "energy_price_entity": "Its hourly statistics are read, not its current value: a bill is built from the price that applied while the energy flowed.",
+          "energy_price_entity": "Its hourly statistics are read, not its current value: a bill is built from the price that applied while the energy flowed. On a flat tariff this is the only entity needed.",
+          "energy_price_entity_p2": "Time-of-use tariffs only: the entity publishing the mid-peak price.",
+          "energy_price_entity_p3": "Time-of-use tariffs only: the off-peak one.",
           "energy_price_taxed": "Tick this if the entity already includes the electricity tax and VAT; they will be stripped before computing, or every kWh would be taxed twice. The Octopus one, for instance, includes them."
         }
       },
@@ -78,34 +84,48 @@
           "surplus_price_entity": "…or an entity publishing that price",
           "surplus_price_taxed": "That entity gives the price with taxes included",
           "battery_entity": "Virtual battery (balance in €)",
-          "surplus_capped": "Surplus cannot exceed the energy term"
+          "surplus_capped": "Surplus cannot exceed the energy term",
+          "hourly_netting": "Net consumption against export within each hour"
         },
         "data_description": {
           "surplus_price": "What you are credited per kWh exported. Leave it at 0 if you do not export.",
           "surplus_price_entity": "Only if your compensation varies by the hour too.",
           "surplus_price_taxed": "Careful: it may differ from the purchase one. At Octopus the purchase price carries taxes and the surplus price does not.",
           "battery_entity": "The pot where surplus with nothing left to cancel out accumulates in euros: Solar Wallet at Octopus, Solar Cloud at Iberdrola. Its balance is applied at the end, after tax, and can take a bill to zero but never below.",
-          "surplus_capped": "That is the rule: compensation can take the energy term to zero but never into your favour. What is left goes to the virtual battery, if you have one."
+          "surplus_capped": "That is the rule: compensation can take the energy term to zero but never into your favour. What is left goes to the virtual battery, if you have one.",
+          "hourly_netting": "The hourly net balance Spanish law requires: export 3 kWh and import 1 in the same hour and it counts as having exported 2. Leave it ticked unless you know your retailer does otherwise."
         }
       },
       "extras": {
-        "title": "Fixed costs and taxes",
+        "title": "Charges, services and taxes",
         "description": "Everything that does not depend on what you consume. The taxes come filled in with the rates in force in Spain; you only need to touch them if they change.",
         "sections": {
-          "fixed": {
-            "name": "Fixed costs",
-            "description": "If you do not know what they are, look at your last bill and leave them at 0 meanwhile.",
+          "regulated": {
+            "name": "Regulated charges",
+            "description": "Set by the government and identical for everyone. Look them up on a bill once and never think about them again.",
             "data": {
               "bono_social": "Bono social (€/day)",
-              "meter_rental": "Meter rental (€/day)",
-              "monthly_fee": "Monthly fee (€/month)",
-              "monthly_fee_name": "Name of that fee"
+              "meter_rental": "Meter rental (€/day)"
             },
             "data_description": {
-              "bono_social": "Set by the government and the same for everyone. Around €0.025 a day.",
-              "meter_rental": "Renting the meter, around €0.027 a day.",
-              "monthly_fee": "Any add-on service billed monthly: maintenance, home packs and so on.",
-              "monthly_fee_name": "How it should read in the breakdown. For example, «Pack Hogar»."
+              "bono_social": "Around €0.025 a day.",
+              "meter_rental": "Renting the meter, around €0.027 a day."
+            }
+          },
+          "retailer": {
+            "name": "What your retailer charges",
+            "description": "This is where two bills on the same tariff stop looking alike: add-on services under whatever name each retailer gives them, and the discounts that usually come attached.",
+            "data": {
+              "monthly_fee": "Monthly fee (€/month)",
+              "monthly_fee_name": "Name of that fee",
+              "discount_percent": "Discount on the energy (%)",
+              "discount_name": "Name of the discount"
+            },
+            "data_description": {
+              "monthly_fee": "Maintenance, home packs, call-out cover — whatever they bill you monthly beside the electricity itself.",
+              "monthly_fee_name": "How it should read in the breakdown. For example, «Pack Hogar».",
+              "discount_percent": "The percentage taken off the energy term. It is computed on the undiscounted energy and shows up in the taxes too, because you are taxed on what you are charged.",
+              "discount_name": "For example, «Plan Estable». Left empty it reads as «Discount»."
             }
           },
           "taxes": {
@@ -120,16 +140,6 @@
               "tax_electricity": "The special tax on electricity: 5.11 %.",
               "tax_vat": "The general 21 %.",
               "tax_includes_bono": "Retailers differ here: Iberdrola includes it, Octopus does not. Check your bill, in the base they compute the electricity tax on."
-            }
-          },
-          "advanced": {
-            "name": "Advanced",
-            "description": "You rarely need to touch anything here.",
-            "data": {
-              "hourly_netting": "Net consumption against export within each hour"
-            },
-            "data_description": {
-              "hourly_netting": "The hourly net balance Spanish law requires: export 3 kWh and import 1 in the same hour and it counts as having exported 2."
             }
           }
         }
@@ -206,7 +216,8 @@
       "pricing": {
         "title": "How your energy is priced",
         "data": {
-          "energy_price_mode": "Your tariff is…"
+          "energy_flat": "I pay the same at every hour (flat rate)",
+          "energy_source": "And the price…"
         }
       },
       "energy": {
@@ -215,7 +226,9 @@
           "energy_price": "Energy price (€/kWh)",
           "energy_price_p2": "Mid-peak price, P2 (€/kWh)",
           "energy_price_p3": "Off-peak price, P3 (€/kWh)",
-          "energy_price_entity": "Entity publishing the price",
+          "energy_price_entity": "Entity with the price (peak, P1)",
+          "energy_price_entity_p2": "Entity with the mid-peak price (P2)",
+          "energy_price_entity_p3": "Entity with the off-peak price (P3)",
           "energy_price_taxed": "That entity gives the price with taxes included"
         }
       },
@@ -226,19 +239,27 @@
           "surplus_price_entity": "…or an entity publishing that price",
           "surplus_price_taxed": "That entity gives the price with taxes included",
           "battery_entity": "Virtual battery (balance in €)",
-          "surplus_capped": "Surplus cannot exceed the energy term"
+          "surplus_capped": "Surplus cannot exceed the energy term",
+          "hourly_netting": "Net consumption against export within each hour"
         }
       },
       "extras": {
-        "title": "Fixed costs and taxes",
+        "title": "Charges, services and taxes",
         "sections": {
-          "fixed": {
-            "name": "Fixed costs",
+          "regulated": {
+            "name": "Regulated charges",
             "data": {
               "bono_social": "Bono social (€/day)",
-              "meter_rental": "Meter rental (€/day)",
+              "meter_rental": "Meter rental (€/day)"
+            }
+          },
+          "retailer": {
+            "name": "What your retailer charges",
+            "data": {
               "monthly_fee": "Monthly fee (€/month)",
-              "monthly_fee_name": "Name of that fee"
+              "monthly_fee_name": "Name of that fee",
+              "discount_percent": "Discount on the energy (%)",
+              "discount_name": "Name of the discount"
             }
           },
           "taxes": {
@@ -247,12 +268,6 @@
               "tax_electricity": "Electricity tax",
               "tax_vat": "VAT",
               "tax_includes_bono": "The bono social counts towards the electricity-tax base"
-            }
-          },
-          "advanced": {
-            "name": "Advanced",
-            "data": {
-              "hourly_netting": "Net consumption against export within each hour"
             }
           }
         }
@@ -282,11 +297,10 @@
     }
   },
   "selector": {
-    "energy_price_mode": {
+    "energy_source": {
       "options": {
-        "flat": "Fixed price, the same at every hour",
-        "periods": "Fixed price, with three time-of-use prices (P1/P2/P3)",
-        "entity": "Indexed: the price changes hourly and an entity publishes it"
+        "fixed": "I type it in, from my contract",
+        "entity": "An entity publishes it (indexed tariff, PVPC…)"
       }
     }
   },
@@ -315,6 +329,7 @@
     "monthly_fee": "Monthly fee",
     "iee": "Electricity tax",
     "vat": "VAT",
-    "virtual_battery": "Virtual battery"
+    "virtual_battery": "Virtual battery",
+    "discount": "Discount"
   }
 }
