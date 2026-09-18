@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_BATTERY_ENTITY,
     CONF_BONO_SOCIAL,
     CONF_CONSUMPTION,
     CONF_CYCLE_DAY,
@@ -49,6 +50,7 @@ from .const import (
     DEFAULT_TAX_ELECTRICITY,
     DEFAULT_TAX_VAT,
     DOMAIN,
+    ID_BATTERY,
     ID_BONO,
     ID_ENERGY,
     ID_FEE,
@@ -137,8 +139,24 @@ class BillCoordinator(DataUpdateCoordinator):
                 }
             )
 
+        # A virtual battery is a balance in euros, not a price: whatever the
+        # retailer says is in it right now, spent against the finished bill.
+        # Read from the entity's current state rather than its statistics,
+        # because the balance is a fact about today, not about each past hour.
+        credits = []
+        battery = o.get(CONF_BATTERY_ENTITY)
+        if battery:
+            state = self.hass.states.get(battery)
+            try:
+                balance = float(state.state)
+            except (AttributeError, TypeError, ValueError):
+                balance = 0.0
+            if balance > 0:
+                credits.append({"id": ID_BATTERY, "amount": balance, "cap_at_total": True})
+
         vat_over = [ID_POWER, ID_ENERGY, ID_SURPLUS, ID_BONO, ID_RENTAL, ID_FEE, ID_IEE]
         return {
+            "credits": credits,
             "energy_price": price,
             "surplus_price": series.get("surplus", float(o.get(CONF_SURPLUS_PRICE, 0.0))),
             "surplus_capped_at_energy": bool(o.get(CONF_SURPLUS_CAPPED, DEFAULT_SURPLUS_CAPPED)),

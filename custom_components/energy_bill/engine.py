@@ -70,6 +70,7 @@ class Result:
     concepts: dict[str, float] = field(default_factory=dict)
     names: dict[str, str] = field(default_factory=dict)
     taxes: dict[str, float] = field(default_factory=dict)
+    credits: dict[str, float] = field(default_factory=dict)
     energy_by_period: dict[str, float] = field(default_factory=dict)
     submeter_kwh: dict[str, float] = field(default_factory=dict)
     imported_kwh: float = 0.0
@@ -81,8 +82,13 @@ class Result:
         return sum(self.concepts.values())
 
     @property
+    def gross(self) -> float:
+        """What the bill comes to before anything is paid out of a balance."""
+        return self.subtotal + sum(self.taxes.values())
+
+    @property
     def total(self) -> float:
-        return round(self.subtotal + sum(self.taxes.values()), 2)
+        return round(self.gross + sum(self.credits.values()), 2)
 
 
 def cents(value: float) -> float:
@@ -247,7 +253,38 @@ def compute(hours: list[Hour], config: dict, days: float | None = None) -> Resul
             base += res.concepts.get(i, res.taxes.get(i, 0.0))
         res.taxes[entry["id"]] = base * float(entry["percent"]) / 100
 
+    # --- credits: money already yours, spent after tax ---------------------
+    # A virtual battery — Octopus's Solar Wallet, Iberdrola's Solar Cloud — is
+    # not a discount and not negative energy. It is a balance in euros, built
+    # from surplus that had nowhere to go once the energy term hit zero, and it
+    # is spent against the finished bill: after tax, because it pays the amount
+    # due rather than reducing the taxable base. It can take a bill to zero and
+    # no further; what is left over stays in the balance for next month.
+    _apply_credits(res.credits, config.get("credits", []), res.gross, res.names)
+
     return res
+
+
+def _apply_credits(
+    into: dict[str, float],
+    entries: list[dict],
+    gross: float,
+    names: dict[str, str] | None = None,
+) -> None:
+    """Spend each balance against what is still owed, in the order given."""
+    remaining = gross
+    for entry in entries:
+        amount = float(entry.get("amount", 0.0))
+        if amount <= 0:
+            continue
+        if entry.get("cap_at_total", True):
+            amount = min(amount, max(remaining, 0.0))
+        if not amount:
+            continue
+        into[entry["id"]] = -amount
+        remaining -= amount
+        if names is not None and entry.get("name"):
+            names[entry["id"]] = entry["name"]
 
 
 def forecast(res: Result, days_in_cycle: float, config: dict) -> float:
@@ -275,4 +312,10 @@ def compute_projection(res: Result, ratio: float, days_in_cycle: float, config: 
     for entry in config.get("taxes", []):
         base = sum(concepts.get(i, taxes.get(i, 0.0)) for i in entry["over"])
         taxes[entry["id"]] = base * float(entry["percent"]) / 100
-    return round(sum(concepts.values()) + sum(taxes.values()), 2)
+    gross = sum(concepts.values()) + sum(taxes.values())
+    # A balance is a fixed number of euros, so it is not scaled with
+    # consumption the way the energy term is — only capped at the larger bill
+    # the whole cycle comes to.
+    credits: dict[str, float] = {}
+    _apply_credits(credits, config.get("credits", []), gross)
+    return round(gross + sum(credits.values()), 2)

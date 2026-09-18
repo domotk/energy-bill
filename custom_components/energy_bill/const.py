@@ -12,6 +12,16 @@ CONF_POWER_P2_KW = "power_p2_kw"
 CONF_POWER_P1_PRICE = "power_p1_price"
 CONF_POWER_P2_PRICE = "power_p2_price"
 
+# How the energy is priced. One question with three answers rather than two
+# questions, because "the price comes from an entity" and "the price is the
+# same at every hour" can contradict each other, and a form that lets you
+# answer both is a form that has to decide which one you meant.
+CONF_ENERGY_PRICE_MODE = "energy_price_mode"
+MODE_FLAT = "flat"
+MODE_PERIODS = "periods"
+MODE_ENTITY = "entity"
+ENERGY_PRICE_MODES = (MODE_FLAT, MODE_PERIODS, MODE_ENTITY)
+
 CONF_ENERGY_PRICE = "energy_price"
 CONF_ENERGY_PRICE_P2 = "energy_price_p2"
 CONF_ENERGY_PRICE_P3 = "energy_price_p3"
@@ -22,6 +32,10 @@ CONF_SURPLUS_PRICE_ENTITY = "surplus_price_entity"
 CONF_SURPLUS_PRICE_TAXED = "surplus_price_taxed"
 CONF_SURPLUS_CAPPED = "surplus_capped"
 CONF_HOURLY_NETTING = "hourly_netting"
+# A virtual battery: the balance in euros that surplus turns into once it has
+# nothing left to cancel out. Solar Wallet at Octopus, Solar Cloud at
+# Iberdrola, Solify at Repsol — same idea, different name.
+CONF_BATTERY_ENTITY = "battery_entity"
 
 CONF_BONO_SOCIAL = "bono_social"
 CONF_METER_RENTAL = "meter_rental"
@@ -42,9 +56,9 @@ DEFAULT_TAX_VAT = 21.0
 DEFAULT_SURPLUS_CAPPED = True
 DEFAULT_HOURLY_NETTING = True
 
-# The form is grouped into collapsible sections; these are their keys, and the
-# input arrives nested under them.
-SECTIONS = ("sources", "power", "energy", "surplus", "fixed", "taxes", "advanced")
+# Some steps of the wizard are grouped into collapsible sections; these are
+# their keys, and the input arrives nested under them.
+SECTIONS = ("sources", "power", "fixed", "taxes", "advanced")
 
 # --- concept ids the sensors and taxes refer to -------------------------
 ID_POWER = "power"
@@ -55,3 +69,4 @@ ID_RENTAL = "meter_rental"
 ID_FEE = "monthly_fee"
 ID_IEE = "iee"
 ID_VAT = "vat"
+ID_BATTERY = "virtual_battery"

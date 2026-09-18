@@ -51,7 +51,9 @@ async def async_get_config_entry_diagnostics(
         salida["result"] = {
             "concepts": {k: cents(v) for k, v in result.concepts.items()},
             "taxes": {k: cents(v) for k, v in result.taxes.items()},
+            "credits": {k: cents(v) for k, v in result.credits.items()},
             "subtotal": cents(result.subtotal),
+            "before_credits": cents(result.gross),
             "total": cents(result.total),
             "forecast": cents(data.get("forecast", 0.0)),
             "imported_kwh": round(result.imported_kwh, 3),

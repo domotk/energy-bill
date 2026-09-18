@@ -214,6 +214,17 @@ r = compute(
 check("net imported (kWh)", r.imported_kwh, 2.0, tol=0.001)
 check("net exported (kWh)", r.exported_kwh, 2.0, tol=0.001)
 
+print("\n════ virtual battery · a balance, not a discount ════")
+# Solar Wallet, Solar Cloud: euros that surplus turned into once it had nothing
+# left to cancel out. Spent after tax, against the finished bill.
+r = compute(h_a, dict(cfg_a, credits=[{"id": "virtual_battery", "amount": 20.0}]), days=31)
+check("the bill before the balance is untouched", r.gross, 42.72)
+check("and what is left to pay", r.total, 22.72)
+
+r = compute(h_a, dict(cfg_a, credits=[{"id": "virtual_battery", "amount": 1000.0}]), days=31)
+check("a balance larger than the bill pays all of it", r.credits["virtual_battery"], -42.72)
+check("and leaves nothing to pay, not money owed", r.total, 0.0)
+
 print("\n════ electric vehicle ════")
 sin_extras = {"surplus_price": 0.0, "hourly_netting": False, "power": [], "daily": [], "taxes": []}
 

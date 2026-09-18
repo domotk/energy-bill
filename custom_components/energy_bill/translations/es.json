@@ -2,16 +2,17 @@
   "title": "Factura de luz",
   "config": {
     "error": {
-      "no_energy_price": "Hace falta un precio de la energía: escribe uno fijo o elige una entidad que lo publique."
+      "no_energy_price": "Hace falta un precio de la energía: escribe cuánto te cuesta el kWh.",
+      "no_price_entity": "Elige la entidad que publica el precio, o vuelve atrás y di que tu tarifa es de precio fijo."
     },
     "step": {
       "user": {
-        "title": "Tu tarifa eléctrica",
-        "description": "Copia los precios de tu contrato, no de la factura impresa: la factura los redondea a tres decimales y calcular con ellos se desvía medio por ciento. Lo que no sepas, déjalo como está.",
+        "title": "De dónde salen los kWh y cuánta potencia tienes",
+        "description": "Copia los datos de tu contrato, no de la factura impresa: la factura redondea los precios a tres decimales y calcular con ellos se desvía medio por ciento.",
         "sections": {
           "sources": {
-            "name": "De dónde salen los kWh",
-            "description": "Los contadores que miden la energía que entra y sale de casa.",
+            "name": "Contadores y ciclo",
+            "description": "La energía que entra y sale de casa, y cuándo empieza a contar tu factura.",
             "data": {
               "consumption_entity": "Energía tomada de la red",
               "export_entity": "Energía vertida a la red",
@@ -38,38 +39,62 @@
               "power_p2_kw": "La de P2. Suele ser la misma que la de punta.",
               "power_p2_price": "Bastante más barato que el de punta: suele rondar la cuarta parte."
             }
-          },
-          "energy": {
-            "name": "Precio de la energía",
-            "description": "Un precio fijo, o una entidad que lo publique si tu tarifa es indexada. Si rellenas las dos cosas, manda la entidad.",
-            "data": {
-              "energy_price": "Precio de la energía (€/kWh)",
-              "energy_price_entity": "…o una entidad que publique el precio",
-              "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            },
-            "data_description": {
-              "energy_price": "Lo que pagas por cada kWh comprado, sin impuestos.",
-              "energy_price_entity": "Para tarifas que cambian cada hora, como PVPC. Se leen sus estadísticas horarias, no su valor de ahora.",
-              "energy_price_taxed": "Márcalo si la entidad ya incluye el impuesto eléctrico y el IVA; se descontarán antes de calcular, porque si no el kWh pagaría impuestos dos veces. La de Octopus, por ejemplo, los incluye."
-            }
-          },
-          "surplus": {
-            "name": "Precio del excedente",
-            "description": "Lo que te abonan por la energía que viertes. Si no tienes placas, déjalo todo como está.",
-            "data": {
-              "surplus_price": "Precio del excedente (€/kWh)",
-              "surplus_price_entity": "…o una entidad que publique ese precio",
-              "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            },
-            "data_description": {
-              "surplus_price": "Lo que te descuentan por cada kWh vertido. Déjalo en 0 si no viertes.",
-              "surplus_price_entity": "Solo si tu compensación también varía por horas.",
-              "surplus_price_taxed": "Ojo: puede no coincidir con la de compra. En Octopus el precio de compra viene con impuestos y el del excedente sin ellos."
-            }
-          },
+          }
+        }
+      },
+      "pricing": {
+        "title": "Cómo te cobran la energía",
+        "description": "De esta respuesta depende lo que te preguntemos después. Si dudas, míralo en el apartado de precios de tu contrato: o hay un único precio del kWh, o hay una tabla con tres, o no hay ninguno porque cambia cada hora.",
+        "data": {
+          "energy_price_mode": "Tu tarifa es…"
+        },
+        "data_description": {
+          "energy_price_mode": "Casi todas las tarifas de precio fijo cobran lo mismo a todas horas. La tabla de tres precios es la discriminación horaria P1/P2/P3."
+        }
+      },
+      "energy": {
+        "title": "Precio de la energía",
+        "description": "Los precios del kWh SIN impuestos, tal como vienen en el contrato.",
+        "data": {
+          "energy_price": "Precio de la energía (€/kWh)",
+          "energy_price_p2": "Precio en llano, P2 (€/kWh)",
+          "energy_price_p3": "Precio en valle, P3 (€/kWh)",
+          "energy_price_entity": "Entidad que publica el precio",
+          "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
+        },
+        "data_description": {
+          "energy_price": "Lo que pagas por cada kWh comprado. Si tu tarifa distingue tramos, este es el de punta (P1): laborables de 10 a 14 y de 18 a 22.",
+          "energy_price_p2": "Laborables de 8 a 10, de 14 a 18 y de 22 a 24.",
+          "energy_price_p3": "Noches, fines de semana y festivos nacionales, el día entero.",
+          "energy_price_entity": "Se leen sus estadísticas horarias, no su valor de ahora: una factura se calcula con el precio que regía mientras pasaba la energía.",
+          "energy_price_taxed": "Márcalo si la entidad ya incluye el impuesto eléctrico y el IVA; se descontarán antes de calcular, porque si no el kWh pagaría impuestos dos veces. La de Octopus, por ejemplo, los incluye."
+        }
+      },
+      "surplus": {
+        "title": "Lo que vuelve por tus placas",
+        "description": "Si no tienes placas, dale a Enviar sin tocar nada.",
+        "data": {
+          "surplus_price": "Precio del excedente (€/kWh)",
+          "surplus_price_entity": "…o una entidad que publique ese precio",
+          "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos",
+          "battery_entity": "Batería virtual (saldo en €)",
+          "surplus_capped": "Los excedentes no pueden superar al término de energía"
+        },
+        "data_description": {
+          "surplus_price": "Lo que te abonan por cada kWh vertido. Déjalo en 0 si no viertes.",
+          "surplus_price_entity": "Solo si tu compensación también varía por horas.",
+          "surplus_price_taxed": "Ojo: puede no coincidir con la de compra. En Octopus el precio de compra viene con impuestos y el del excedente sin ellos.",
+          "battery_entity": "La hucha donde se acumula en euros el excedente que ya no tenía nada que descontar: Solar Wallet en Octopus, Solar Cloud en Iberdrola. Su saldo se aplica al final, después de impuestos, y puede dejar la factura en cero pero nunca en negativo.",
+          "surplus_capped": "Así es la norma: la compensación puede dejar la energía a cero, pero nunca a favor tuyo. Lo que sobra va a la batería virtual, si la tienes."
+        }
+      },
+      "extras": {
+        "title": "Costes fijos e impuestos",
+        "description": "Lo que no depende de lo que consumas. Los impuestos vienen con los valores vigentes en España; solo hay que tocarlos si cambian.",
+        "sections": {
           "fixed": {
             "name": "Costes fijos",
-            "description": "Conceptos que no dependen de lo que consumas. Si no sabes cuánto son, míralos en la última factura y déjalos en 0 mientras tanto.",
+            "description": "Si no sabes cuánto son, míralos en la última factura y déjalos en 0 mientras tanto.",
             "data": {
               "bono_social": "Bono social (€/día)",
               "meter_rental": "Alquiler de equipos (€/día)",
@@ -85,7 +110,7 @@
           },
           "taxes": {
             "name": "Impuestos",
-            "description": "Los valores que vienen puestos son los vigentes en España. Solo tendrás que tocarlos si cambian.",
+            "description": "Los valores que vienen puestos son los vigentes en España.",
             "data": {
               "tax_electricity": "Impuesto eléctrico",
               "tax_vat": "IVA",
@@ -99,29 +124,23 @@
           },
           "advanced": {
             "name": "Ajustes avanzados",
-            "description": "Para tarifas con precios distintos por tramo horario y para afinar el cálculo de los excedentes.",
+            "description": "No suele hacer falta tocar nada de aquí.",
             "data": {
-              "energy_price_p2": "Precio de la energía en llano (P2)",
-              "energy_price_p3": "Precio de la energía en valle (P3)",
-              "surplus_capped": "Los excedentes no pueden superar al término de energía",
               "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
             },
             "data_description": {
-              "energy_price_p2": "Déjalo vacío si pagas lo mismo las 24 horas, que es lo más frecuente.",
-              "energy_price_p3": "Igual: solo si tu tarifa distingue tramos.",
-              "surplus_capped": "Así es la norma: la compensación puede dejar la energía a cero, pero nunca a favor tuyo.",
               "hourly_netting": "El balance neto horario que exige la normativa española: si en una hora viertes 3 kWh e importas 1, cuenta como si hubieras vertido 2."
             }
           }
         }
       },
       "reconfigure": {
-        "title": "Tu tarifa eléctrica",
-        "description": "Puedes cambiar cualquier cosa, incluidos los sensores. Se recalcula el ciclo en curso al guardar.",
+        "title": "De dónde salen los kWh y cuánta potencia tienes",
+        "description": "Copia los datos de tu contrato, no de la factura impresa: la factura redondea los precios a tres decimales y calcular con ellos se desvía medio por ciento.",
         "sections": {
           "sources": {
-            "name": "De dónde salen los kWh",
-            "description": "Los contadores que miden la energía que entra y sale de casa.",
+            "name": "Contadores y ciclo",
+            "description": "La energía que entra y sale de casa, y cuándo empieza a contar tu factura.",
             "data": {
               "consumption_entity": "Energía tomada de la red",
               "export_entity": "Energía vertida a la red",
@@ -147,80 +166,6 @@
               "power_p1_price": "En la factura aparece como «potencia punta», en euros por kW y día.",
               "power_p2_kw": "La de P2. Suele ser la misma que la de punta.",
               "power_p2_price": "Bastante más barato que el de punta: suele rondar la cuarta parte."
-            }
-          },
-          "energy": {
-            "name": "Precio de la energía",
-            "description": "Un precio fijo, o una entidad que lo publique si tu tarifa es indexada. Si rellenas las dos cosas, manda la entidad.",
-            "data": {
-              "energy_price": "Precio de la energía (€/kWh)",
-              "energy_price_entity": "…o una entidad que publique el precio",
-              "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            },
-            "data_description": {
-              "energy_price": "Lo que pagas por cada kWh comprado, sin impuestos.",
-              "energy_price_entity": "Para tarifas que cambian cada hora, como PVPC. Se leen sus estadísticas horarias, no su valor de ahora.",
-              "energy_price_taxed": "Márcalo si la entidad ya incluye el impuesto eléctrico y el IVA; se descontarán antes de calcular, porque si no el kWh pagaría impuestos dos veces. La de Octopus, por ejemplo, los incluye."
-            }
-          },
-          "surplus": {
-            "name": "Precio del excedente",
-            "description": "Lo que te abonan por la energía que viertes. Si no tienes placas, déjalo todo como está.",
-            "data": {
-              "surplus_price": "Precio del excedente (€/kWh)",
-              "surplus_price_entity": "…o una entidad que publique ese precio",
-              "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            },
-            "data_description": {
-              "surplus_price": "Lo que te descuentan por cada kWh vertido. Déjalo en 0 si no viertes.",
-              "surplus_price_entity": "Solo si tu compensación también varía por horas.",
-              "surplus_price_taxed": "Ojo: puede no coincidir con la de compra. En Octopus el precio de compra viene con impuestos y el del excedente sin ellos."
-            }
-          },
-          "fixed": {
-            "name": "Costes fijos",
-            "description": "Conceptos que no dependen de lo que consumas. Si no sabes cuánto son, míralos en la última factura y déjalos en 0 mientras tanto.",
-            "data": {
-              "bono_social": "Bono social (€/día)",
-              "meter_rental": "Alquiler de equipos (€/día)",
-              "monthly_fee": "Cuota mensual (€/mes)",
-              "monthly_fee_name": "Nombre de esa cuota"
-            },
-            "data_description": {
-              "bono_social": "Lo fija el Gobierno y es igual para todos. Ronda los 0,025 € al día.",
-              "meter_rental": "El alquiler del contador, alrededor de 0,027 € al día.",
-              "monthly_fee": "Cualquier servicio añadido que te cobren cada mes: mantenimiento, packs de hogar, etcétera.",
-              "monthly_fee_name": "Cómo quieres que aparezca en el desglose. Por ejemplo, «Pack Hogar»."
-            }
-          },
-          "taxes": {
-            "name": "Impuestos",
-            "description": "Los valores que vienen puestos son los vigentes en España. Solo tendrás que tocarlos si cambian.",
-            "data": {
-              "tax_electricity": "Impuesto eléctrico",
-              "tax_vat": "IVA",
-              "tax_includes_bono": "El bono social entra en la base del impuesto eléctrico"
-            },
-            "data_description": {
-              "tax_electricity": "El impuesto especial sobre la electricidad: 5,11 %.",
-              "tax_vat": "El 21 % general.",
-              "tax_includes_bono": "Aquí no todas las comercializadoras hacen lo mismo: Iberdrola lo incluye y Octopus no. Míralo en tu factura, en la base sobre la que calculan el impuesto eléctrico."
-            }
-          },
-          "advanced": {
-            "name": "Ajustes avanzados",
-            "description": "Para tarifas con precios distintos por tramo horario y para afinar el cálculo de los excedentes.",
-            "data": {
-              "energy_price_p2": "Precio de la energía en llano (P2)",
-              "energy_price_p3": "Precio de la energía en valle (P3)",
-              "surplus_capped": "Los excedentes no pueden superar al término de energía",
-              "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
-            },
-            "data_description": {
-              "energy_price_p2": "Déjalo vacío si pagas lo mismo las 24 horas, que es lo más frecuente.",
-              "energy_price_p3": "Igual: solo si tu tarifa distingue tramos.",
-              "surplus_capped": "Así es la norma: la compensación puede dejar la energía a cero, pero nunca a favor tuyo.",
-              "hourly_netting": "El balance neto horario que exige la normativa española: si en una hora viertes 3 kWh e importas 1, cuenta como si hubieras vertido 2."
             }
           }
         }
@@ -232,15 +177,15 @@
   },
   "options": {
     "error": {
-      "no_energy_price": "Hace falta un precio de la energía: escribe uno fijo o elige una entidad que lo publique."
+      "no_energy_price": "Hace falta un precio de la energía: escribe cuánto te cuesta el kWh.",
+      "no_price_entity": "Elige la entidad que publica el precio, o vuelve atrás y di que tu tarifa es de precio fijo."
     },
     "step": {
-      "init": {
-        "title": "Tu tarifa eléctrica",
-        "description": "Los cambios se aplican al ciclo en curso en cuanto guardas.",
+      "user": {
+        "title": "De dónde salen los kWh y cuánta potencia tienes",
         "sections": {
           "sources": {
-            "name": "De dónde salen los kWh",
+            "name": "Contadores y ciclo",
             "data": {
               "consumption_entity": "Energía tomada de la red",
               "export_entity": "Energía vertida a la red",
@@ -255,23 +200,38 @@
               "power_p2_kw": "Potencia contratada en valle",
               "power_p2_price": "Precio de la potencia en valle (€/kW y día)"
             }
-          },
-          "energy": {
-            "name": "Precio de la energía",
-            "data": {
-              "energy_price": "Precio de la energía (€/kWh)",
-              "energy_price_entity": "…o una entidad que publique el precio",
-              "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            }
-          },
-          "surplus": {
-            "name": "Precio del excedente",
-            "data": {
-              "surplus_price": "Precio del excedente (€/kWh)",
-              "surplus_price_entity": "…o una entidad que publique ese precio",
-              "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos"
-            }
-          },
+          }
+        }
+      },
+      "pricing": {
+        "title": "Cómo te cobran la energía",
+        "data": {
+          "energy_price_mode": "Tu tarifa es…"
+        }
+      },
+      "energy": {
+        "title": "Precio de la energía",
+        "data": {
+          "energy_price": "Precio de la energía (€/kWh)",
+          "energy_price_p2": "Precio en llano, P2 (€/kWh)",
+          "energy_price_p3": "Precio en valle, P3 (€/kWh)",
+          "energy_price_entity": "Entidad que publica el precio",
+          "energy_price_taxed": "Esa entidad da el precio con impuestos incluidos"
+        }
+      },
+      "surplus": {
+        "title": "Lo que vuelve por tus placas",
+        "data": {
+          "surplus_price": "Precio del excedente (€/kWh)",
+          "surplus_price_entity": "…o una entidad que publique ese precio",
+          "surplus_price_taxed": "Esa entidad da el precio con impuestos incluidos",
+          "battery_entity": "Batería virtual (saldo en €)",
+          "surplus_capped": "Los excedentes no pueden superar al término de energía"
+        }
+      },
+      "extras": {
+        "title": "Costes fijos e impuestos",
+        "sections": {
           "fixed": {
             "name": "Costes fijos",
             "data": {
@@ -292,13 +252,41 @@
           "advanced": {
             "name": "Ajustes avanzados",
             "data": {
-              "energy_price_p2": "Precio de la energía en llano (P2)",
-              "energy_price_p3": "Precio de la energía en valle (P3)",
-              "surplus_capped": "Los excedentes no pueden superar al término de energía",
               "hourly_netting": "Compensar consumo y vertido dentro de cada hora"
             }
           }
         }
+      },
+      "init": {
+        "title": "De dónde salen los kWh y cuánta potencia tienes",
+        "sections": {
+          "sources": {
+            "name": "Contadores y ciclo",
+            "data": {
+              "consumption_entity": "Energía tomada de la red",
+              "export_entity": "Energía vertida a la red",
+              "cycle_day": "El ciclo de facturación empieza el día"
+            }
+          },
+          "power": {
+            "name": "Potencia contratada",
+            "data": {
+              "power_p1_kw": "Potencia contratada en punta",
+              "power_p1_price": "Precio de la potencia en punta (€/kW y día)",
+              "power_p2_kw": "Potencia contratada en valle",
+              "power_p2_price": "Precio de la potencia en valle (€/kW y día)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "energy_price_mode": {
+      "options": {
+        "flat": "De precio fijo, el mismo a todas horas",
+        "periods": "De precio fijo, con tres precios por tramo horario (P1/P2/P3)",
+        "entity": "Indexada: el precio cambia cada hora y lo publica una entidad"
       }
     }
   },
@@ -326,6 +314,7 @@
     "meter_rental": "Alquiler de equipos",
     "monthly_fee": "Cuota mensual",
     "iee": "Impuesto eléctrico",
-    "vat": "IVA"
+    "vat": "IVA",
+    "virtual_battery": "Batería virtual"
   }
 }

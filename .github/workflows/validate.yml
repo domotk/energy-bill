@@ -38,3 +38,5 @@ jobs:
           python-version: "3.13"
       - name: Check the engine against three real bills
         run: python tests/test_engine.py
+      - name: Walk the setup wizard
+        run: python tests/test_config_flow.py

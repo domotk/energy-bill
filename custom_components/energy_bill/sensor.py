@@ -109,7 +109,13 @@ class CycleCostSensor(BillEntity):
                 self._label(k, result.names): cents(v) for k, v in result.concepts.items()
             },
             "taxes": {self._label(k, {}): cents(v) for k, v in result.taxes.items()},
+            # Kept apart from the concepts because they are: a balance is spent
+            # after tax, so it changes what you pay without changing the bill.
+            "credits": {
+                self._label(k, result.names): cents(v) for k, v in result.credits.items()
+            },
             "subtotal": cents(result.subtotal),
+            "before_credits": cents(result.gross),
             "energy_by_period": {k: round(v, 2) for k, v in result.energy_by_period.items()},
             "cycle_start": data["cycle_start"].isoformat(),
             "cycle_end": data["cycle_end"].isoformat(),

@@ -40,6 +40,10 @@ accrual basis, and taxes that declare which concepts they apply to.
   taxes and some without — Octopus does both, one for purchase and one for
   surplus. Tick the box and they are stripped back before the taxes are
   applied again.
+- **Virtual batteries.** Surplus that has nothing left to cancel out becomes a
+  balance in euros — Solar Wallet at Octopus, Solar Cloud at Iberdrola. Point
+  at the entity holding it and it is spent against the finished bill, after
+  tax, down to zero and never below.
 - **Discounts, monthly fees and a configurable tax base**, because retailers
   differ and a hard-coded formula would be right for exactly one of them.
 - **Diagnostics download** that shows where the chain of numbers diverges.
@@ -60,18 +64,22 @@ folder and restart.
 
 ## Setting it up
 
-Everything is on one form, grouped into sections. Only the first three are
-open; the rest have sensible Spanish defaults.
+Five short steps, each asking about one thing.
 
-| Section | What goes in it |
+| Step | What it asks |
 |---|---|
-| Where the kWh come from | Your grid import meter, the export one if you have panels, and the day your cycle starts |
-| Contracted power | kW and €/kW/day for peak and off-peak |
-| Energy price | A fixed €/kWh, or an entity — and whether that entity includes taxes |
-| Surplus price | The same, for what you export |
-| Fixed costs | Bono social, meter rental, any monthly fee |
-| Taxes | Electricity tax and VAT, and whether the bono social counts towards the first |
-| Advanced | Per-period prices, surplus cap, hourly netting |
+| 1. Meters and power | Your grid import meter, the export one if you have panels, the day your cycle starts, and the kW you contract in each power period |
+| 2. How your energy is priced | One question, three answers: the same price at every hour, three prices by time of use, or an entity publishes it |
+| 3. The prices themselves | Exactly the fields that answer implies, and nothing else |
+| 4. What comes back | Surplus price, the virtual battery holding your balance, and whether surplus is capped at the energy term |
+| 5. Fixed costs and taxes | Bono social, meter rental, monthly fees, and the tax rates — filled in with the Spanish ones |
+
+Step 2 is what makes the rest short. A tariff either has one price, or a table
+of three, or none at all because it changes hourly — and knowing which means
+step 3 can ask for three fields instead of showing eight and hoping you know
+which ones are yours. **Time-of-use prices are asked for together**, because
+that is how they appear on the contract and a price you cannot see next to its
+neighbours is a price you cannot check.
 
 > **Copy the prices from your contract, not from the printed bill.** Bills round
 > prices to three decimals, and computing with `0,095` instead of `0,09537` is
@@ -80,6 +88,57 @@ open; the rest have sensible Spanish defaults.
 The consumption sensor needs **long-term statistics** — that is, a
 `state_class` of `total` or `total_increasing`. Without them there is nothing
 to build a bill from, and the integration says so rather than reporting €0.00.
+
+## Where the readings can come from
+
+This integration deliberately measures nothing itself. It reads entities that
+already exist, whatever produced them:
+
+```mermaid
+flowchart LR
+  subgraph own["Your own hardware"]
+    S["Shelly EM · ESPHome<br/>a clamp on the tails"]
+  end
+  subgraph dso["Your distributor — i-DE, e-distribución…"]
+    I["ha-ideenergy · ide_api<br/>Datadis"]
+  end
+  subgraph ret["Your retailer — Octopus, Iberdrola…"]
+    P["price per kWh"]
+    W["virtual battery balance"]
+  end
+  S --> M["sensor: kWh from the grid<br/>sensor: kWh to the grid"]
+  I --> M
+  M --> EB["Energy Bill"]
+  P --> EB
+  W --> EB
+  EB --> OUT["cost so far · forecast · breakdown"]
+```
+
+**Your own meter** is the most responsive and the one you already trust: it
+updates every few seconds and owes nothing to anybody's servers. It can also
+disagree with the distributor's official register by a percent or so, which is
+the difference between what you measure and what you are billed for.
+
+**Your distributor's official readings** are the ones the bill is actually made
+of. For i-DE — the distributor across much of Spain — two integrations exist,
+and they answer different questions:
+
+| | [`ldotlopez/ha-ideenergy`](https://github.com/ldotlopez/ha-ideenergy) | [`ad-ha/ide_api`](https://github.com/ad-ha/ide_api) |
+|---|---|---|
+| What it gets | The official hourly history, and backfills it into long-term statistics | The meter read on demand, within about two minutes |
+| Lag | 24-48 h, which is when i-DE publishes | Live |
+| Good for | **This integration**: a bill computed from the same figures it will be billed from | Watching what the house is doing right now |
+
+Either needs the *Usuario Avanzado* profile on the i-DE website, which is free
+and takes a day or two to be granted. [Datadis](https://datadis.es) is the
+official route covering every Spanish distributor, if yours is not i-DE.
+
+The point of the backfilling one is worth spelling out: it writes history, so
+installing it today gives this integration months of past cycles to rebuild,
+not just the ones from here on.
+
+**Your retailer** supplies the two things no meter can know: what a kWh cost at
+each hour, and what your virtual battery holds. Both go in as entities.
 
 ## Entities
 
@@ -104,6 +163,7 @@ power     = Σ  kW × €/kW/day × days           per power period
 fixed     = daily and monthly charges
 discounts = % of the undiscounted base, stacked
 tax       = % of whichever concepts that tax declares
+balance   = the virtual battery, spent after tax, never past zero
 ```
 
 Everything is kept at full precision and rounded once, for display. Expect the
