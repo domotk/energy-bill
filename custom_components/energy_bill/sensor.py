@@ -25,7 +25,13 @@ from .const import DOMAIN
 from .coordinator import BillCoordinator
 from .engine import cents
 
-_PREFIX = f"component.{DOMAIN}.concepts."
+# `common` rather than a category named after what it holds: hassfest checks
+# strings.json against a closed set of top-level keys, and a `concepts` one —
+# which loads perfectly well at runtime — fails validation. `common` is the
+# only category whose shape is a free list of slug → text, which is precisely
+# what a concept name is.
+_CATEGORY = "common"
+_PREFIX = f"component.{DOMAIN}.{_CATEGORY}."
 
 
 async def async_setup_entry(
@@ -37,7 +43,7 @@ async def async_setup_entry(
     # breakdown to everyone, which is the sort of thing nobody notices until
     # somebody outside Spain installs it.
     resources = await async_get_translations(
-        hass, hass.config.language, "concepts", {DOMAIN}
+        hass, hass.config.language, _CATEGORY, {DOMAIN}
     )
     names = {k[len(_PREFIX):]: v for k, v in resources.items() if k.startswith(_PREFIX)}
     async_add_entities(
