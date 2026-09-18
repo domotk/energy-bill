@@ -1,0 +1,331 @@
+{
+  "title": "Energy Bill",
+  "config": {
+    "error": {
+      "no_energy_price": "An energy price is needed: either type a fixed one or pick an entity that publishes it."
+    },
+    "step": {
+      "user": {
+        "title": "Your electricity tariff",
+        "description": "Copy the prices from your contract, not from the printed bill: bills round them to three decimals and computing with those is about half a per cent out. Leave anything you are unsure about as it is.",
+        "sections": {
+          "sources": {
+            "name": "Where the kWh come from",
+            "description": "The meters measuring energy in and out of the house.",
+            "data": {
+              "consumption_entity": "Energy taken from the grid",
+              "export_entity": "Energy exported to the grid",
+              "cycle_day": "Billing cycle starts on day"
+            },
+            "data_description": {
+              "consumption_entity": "The meter that accumulates kWh bought from the grid. It needs history: its hourly statistics are what the bill is built from.",
+              "export_entity": "Only if you have solar panels. Leave empty if you never export.",
+              "cycle_day": "Check the start date on your last bill. The 1st is the usual one."
+            }
+          },
+          "power": {
+            "name": "Contracted power",
+            "description": "Paid for every day of the month whether you use it or not. The 2.0TD tariff has two periods and you may have contracted a different power in each.",
+            "data": {
+              "power_p1_kw": "Contracted power, peak",
+              "power_p1_price": "Power price, peak (€/kW per day)",
+              "power_p2_kw": "Contracted power, off-peak",
+              "power_p2_price": "Power price, off-peak (€/kW per day)"
+            },
+            "data_description": {
+              "power_p1_kw": "The figure your contract gives for P1. A home is typically between 3.3 and 5.75 kW.",
+              "power_p1_price": "Shown on the bill as the peak power term, in euros per kW per day.",
+              "power_p2_kw": "The one for P2. Usually the same as peak.",
+              "power_p2_price": "Much cheaper than peak: often around a quarter of it."
+            }
+          },
+          "energy": {
+            "name": "Energy price",
+            "description": "A fixed price, or an entity publishing it if your tariff is index-linked. Fill both and the entity wins.",
+            "data": {
+              "energy_price": "Energy price (€/kWh)",
+              "energy_price_entity": "…or an entity publishing the price",
+              "energy_price_taxed": "That entity gives the price with taxes included"
+            },
+            "data_description": {
+              "energy_price": "What you pay for each kWh bought, before tax.",
+              "energy_price_entity": "For tariffs changing every hour, such as PVPC. Its hourly statistics are read, not its value right now.",
+              "energy_price_taxed": "Tick this if the entity already includes the electricity tax and VAT; they are stripped back before computing, or every kWh would be taxed twice. The Octopus one, for instance, includes them."
+            }
+          },
+          "surplus": {
+            "name": "Surplus price",
+            "description": "What you are credited for the energy you export. Without panels, leave all of this alone.",
+            "data": {
+              "surplus_price": "Surplus price (€/kWh)",
+              "surplus_price_entity": "…or an entity publishing that price",
+              "surplus_price_taxed": "That entity gives the price with taxes included"
+            },
+            "data_description": {
+              "surplus_price": "What you are credited per kWh exported. Leave at 0 if you never export.",
+              "surplus_price_entity": "Only if your compensation varies by the hour as well.",
+              "surplus_price_taxed": "Careful: it need not match the purchase price. With Octopus the buying price comes with taxes and the surplus price without."
+            }
+          },
+          "fixed": {
+            "name": "Fixed costs",
+            "description": "Items that do not depend on what you use. If you do not know them, look at your last bill and leave them at 0 meanwhile.",
+            "data": {
+              "bono_social": "Bono social (€/day)",
+              "meter_rental": "Meter rental (€/day)",
+              "monthly_fee": "Monthly fee (€/month)",
+              "monthly_fee_name": "Name for that fee"
+            },
+            "data_description": {
+              "bono_social": "Set by the government and the same for everyone, around €0.025 a day.",
+              "meter_rental": "Rental of the meter itself, about €0.027 a day.",
+              "monthly_fee": "Any add-on service billed monthly: maintenance, home packs and the like.",
+              "monthly_fee_name": "How it should read in the breakdown, for example «Home Pack»."
+            }
+          },
+          "taxes": {
+            "name": "Taxes",
+            "description": "The values here are the ones in force in Spain. You only need to touch them if they change.",
+            "data": {
+              "tax_electricity": "Electricity tax",
+              "tax_vat": "VAT",
+              "tax_includes_bono": "Bono social counts towards the electricity tax"
+            },
+            "data_description": {
+              "tax_electricity": "The special tax on electricity: 5.11 %.",
+              "tax_vat": "The general 21 %.",
+              "tax_includes_bono": "Retailers differ here: Iberdrola includes it, Octopus does not. Check the base your bill applies the electricity tax to."
+            }
+          },
+          "advanced": {
+            "name": "Advanced",
+            "description": "For tariffs priced differently by time of day, and for fine-tuning how surplus is treated.",
+            "data": {
+              "energy_price_p2": "Energy price, mid-peak (P2)",
+              "energy_price_p3": "Energy price, off-peak (P3)",
+              "surplus_capped": "Surplus cannot exceed the energy term",
+              "hourly_netting": "Net imports against exports within each hour"
+            },
+            "data_description": {
+              "energy_price_p2": "Leave empty if you pay the same around the clock, which is the common case.",
+              "energy_price_p3": "Likewise: only if your tariff distinguishes periods.",
+              "surplus_capped": "This is what the rules say: compensation can take the energy term to zero, never into your favour.",
+              "hourly_netting": "The hourly net balance Spanish law requires: export 3 kWh and import 1 in the same hour and you exported 2."
+            }
+          }
+        }
+      },
+      "reconfigure": {
+        "title": "Your electricity tariff",
+        "description": "You can change anything here, the sensors included. The current cycle is recomputed on save.",
+        "sections": {
+          "sources": {
+            "name": "Where the kWh come from",
+            "description": "The meters measuring energy in and out of the house.",
+            "data": {
+              "consumption_entity": "Energy taken from the grid",
+              "export_entity": "Energy exported to the grid",
+              "cycle_day": "Billing cycle starts on day"
+            },
+            "data_description": {
+              "consumption_entity": "The meter that accumulates kWh bought from the grid. It needs history: its hourly statistics are what the bill is built from.",
+              "export_entity": "Only if you have solar panels. Leave empty if you never export.",
+              "cycle_day": "Check the start date on your last bill. The 1st is the usual one."
+            }
+          },
+          "power": {
+            "name": "Contracted power",
+            "description": "Paid for every day of the month whether you use it or not. The 2.0TD tariff has two periods and you may have contracted a different power in each.",
+            "data": {
+              "power_p1_kw": "Contracted power, peak",
+              "power_p1_price": "Power price, peak (€/kW per day)",
+              "power_p2_kw": "Contracted power, off-peak",
+              "power_p2_price": "Power price, off-peak (€/kW per day)"
+            },
+            "data_description": {
+              "power_p1_kw": "The figure your contract gives for P1. A home is typically between 3.3 and 5.75 kW.",
+              "power_p1_price": "Shown on the bill as the peak power term, in euros per kW per day.",
+              "power_p2_kw": "The one for P2. Usually the same as peak.",
+              "power_p2_price": "Much cheaper than peak: often around a quarter of it."
+            }
+          },
+          "energy": {
+            "name": "Energy price",
+            "description": "A fixed price, or an entity publishing it if your tariff is index-linked. Fill both and the entity wins.",
+            "data": {
+              "energy_price": "Energy price (€/kWh)",
+              "energy_price_entity": "…or an entity publishing the price",
+              "energy_price_taxed": "That entity gives the price with taxes included"
+            },
+            "data_description": {
+              "energy_price": "What you pay for each kWh bought, before tax.",
+              "energy_price_entity": "For tariffs changing every hour, such as PVPC. Its hourly statistics are read, not its value right now.",
+              "energy_price_taxed": "Tick this if the entity already includes the electricity tax and VAT; they are stripped back before computing, or every kWh would be taxed twice. The Octopus one, for instance, includes them."
+            }
+          },
+          "surplus": {
+            "name": "Surplus price",
+            "description": "What you are credited for the energy you export. Without panels, leave all of this alone.",
+            "data": {
+              "surplus_price": "Surplus price (€/kWh)",
+              "surplus_price_entity": "…or an entity publishing that price",
+              "surplus_price_taxed": "That entity gives the price with taxes included"
+            },
+            "data_description": {
+              "surplus_price": "What you are credited per kWh exported. Leave at 0 if you never export.",
+              "surplus_price_entity": "Only if your compensation varies by the hour as well.",
+              "surplus_price_taxed": "Careful: it need not match the purchase price. With Octopus the buying price comes with taxes and the surplus price without."
+            }
+          },
+          "fixed": {
+            "name": "Fixed costs",
+            "description": "Items that do not depend on what you use. If you do not know them, look at your last bill and leave them at 0 meanwhile.",
+            "data": {
+              "bono_social": "Bono social (€/day)",
+              "meter_rental": "Meter rental (€/day)",
+              "monthly_fee": "Monthly fee (€/month)",
+              "monthly_fee_name": "Name for that fee"
+            },
+            "data_description": {
+              "bono_social": "Set by the government and the same for everyone, around €0.025 a day.",
+              "meter_rental": "Rental of the meter itself, about €0.027 a day.",
+              "monthly_fee": "Any add-on service billed monthly: maintenance, home packs and the like.",
+              "monthly_fee_name": "How it should read in the breakdown, for example «Home Pack»."
+            }
+          },
+          "taxes": {
+            "name": "Taxes",
+            "description": "The values here are the ones in force in Spain. You only need to touch them if they change.",
+            "data": {
+              "tax_electricity": "Electricity tax",
+              "tax_vat": "VAT",
+              "tax_includes_bono": "Bono social counts towards the electricity tax"
+            },
+            "data_description": {
+              "tax_electricity": "The special tax on electricity: 5.11 %.",
+              "tax_vat": "The general 21 %.",
+              "tax_includes_bono": "Retailers differ here: Iberdrola includes it, Octopus does not. Check the base your bill applies the electricity tax to."
+            }
+          },
+          "advanced": {
+            "name": "Advanced",
+            "description": "For tariffs priced differently by time of day, and for fine-tuning how surplus is treated.",
+            "data": {
+              "energy_price_p2": "Energy price, mid-peak (P2)",
+              "energy_price_p3": "Energy price, off-peak (P3)",
+              "surplus_capped": "Surplus cannot exceed the energy term",
+              "hourly_netting": "Net imports against exports within each hour"
+            },
+            "data_description": {
+              "energy_price_p2": "Leave empty if you pay the same around the clock, which is the common case.",
+              "energy_price_p3": "Likewise: only if your tariff distinguishes periods.",
+              "surplus_capped": "This is what the rules say: compensation can take the energy term to zero, never into your favour.",
+              "hourly_netting": "The hourly net balance Spanish law requires: export 3 kWh and import 1 in the same hour and you exported 2."
+            }
+          }
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "Configuration updated."
+    }
+  },
+  "options": {
+    "error": {
+      "no_energy_price": "An energy price is needed: either type a fixed one or pick an entity that publishes it."
+    },
+    "step": {
+      "init": {
+        "title": "Your electricity tariff",
+        "description": "Changes apply to the current cycle as soon as you save.",
+        "sections": {
+          "sources": {
+            "name": "Where the kWh come from",
+            "data": {
+              "consumption_entity": "Energy taken from the grid",
+              "export_entity": "Energy exported to the grid",
+              "cycle_day": "Billing cycle starts on day"
+            }
+          },
+          "power": {
+            "name": "Contracted power",
+            "data": {
+              "power_p1_kw": "Contracted power, peak",
+              "power_p1_price": "Power price, peak (€/kW per day)",
+              "power_p2_kw": "Contracted power, off-peak",
+              "power_p2_price": "Power price, off-peak (€/kW per day)"
+            }
+          },
+          "energy": {
+            "name": "Energy price",
+            "data": {
+              "energy_price": "Energy price (€/kWh)",
+              "energy_price_entity": "…or an entity publishing the price",
+              "energy_price_taxed": "That entity gives the price with taxes included"
+            }
+          },
+          "surplus": {
+            "name": "Surplus price",
+            "data": {
+              "surplus_price": "Surplus price (€/kWh)",
+              "surplus_price_entity": "…or an entity publishing that price",
+              "surplus_price_taxed": "That entity gives the price with taxes included"
+            }
+          },
+          "fixed": {
+            "name": "Fixed costs",
+            "data": {
+              "bono_social": "Bono social (€/day)",
+              "meter_rental": "Meter rental (€/day)",
+              "monthly_fee": "Monthly fee (€/month)",
+              "monthly_fee_name": "Name for that fee"
+            }
+          },
+          "taxes": {
+            "name": "Taxes",
+            "data": {
+              "tax_electricity": "Electricity tax",
+              "tax_vat": "VAT",
+              "tax_includes_bono": "Bono social counts towards the electricity tax"
+            }
+          },
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "energy_price_p2": "Energy price, mid-peak (P2)",
+              "energy_price_p3": "Energy price, off-peak (P3)",
+              "surplus_capped": "Surplus cannot exceed the energy term",
+              "hourly_netting": "Net imports against exports within each hour"
+            }
+          }
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cycle_cost": {
+        "name": "Cost this cycle"
+      },
+      "forecast": {
+        "name": "Forecast for this cycle"
+      },
+      "imported": {
+        "name": "Energy taken from the grid"
+      },
+      "exported": {
+        "name": "Energy exported to the grid"
+      }
+    }
+  },
+  "concepts": {
+    "power": "Power",
+    "energy": "Energy",
+    "surplus": "Surplus",
+    "bono_social": "Bono social",
+    "meter_rental": "Meter rental",
+    "monthly_fee": "Monthly fee",
+    "iee": "Electricity tax",
+    "vat": "VAT"
+  }
+}
